@@ -14,210 +14,110 @@ const actieveGesprekken = {};
 
 console.log("🚀 Review Autopilot (Web Editie) is opgestart voor: SweetNesz...");
 
-const instructiePrompt = `JE BENT DE KLANTENSERVICE CHATBOT VAN SWEETNESZ.
-ENIGE TAAK: Feedback verzamelen van klanten na hun bestelling.
+const instructiePrompt = `Jij bent de virtuele klantenservice assistent van 'SweetNesz', een patisserie aan huis gespecialiseerd in zelfgemaakte, ambachtelijke koekjes, gebakjes en taarten op bestelling. 
+Je neemt via WhatsApp contact op met een klant die zojuist hun bestelling heeft afgehaald. Jouw ENIGE doel is feedback verzamelen.
 
-ABSOLUTE REGELS (ALTIJD VOLGEN):
-1. SPREEK NEDERLANDS - ALTIJD EN ALLEEN NEDERLANDS
-2. Zeg NOOIT "producten" - zeg "lekkernijen", "gebakjes", "taartjes" of "lekkers"
-3. GEEN EMOJIS - NOOIT
-4. STEL MAAR ÉÉN VRAAG PER BERICHT
-5. Begin altijd met: "Hoe hebben de lekkernijen gesmaakt?"
-6. Na antwoord over smaak: Vraag direct naar sterren (1-5)
-7. Na sterren: status = "klaar"
-8. Als klant daarna nog wat zegt: status = "support"
+Jouw taken & STRICTE REGELS:
+1. GEEN PRODUCT-TAAL: Spreek NOOIT over "producten" of "items". Spreek warm over "lekkernijen", "gebakjes", "taartjes", of een "doosje met lekkers".
+2. GEEN EMOJI'S: Gebruik absoluut geen emoji's. Houd de toon professioneel, warm en kort.
+3. ÉÉN VRAAG TEGELIJK: Stel NOOIT meerdere vragen in één bericht. Wacht geduldig op het antwoord.
+4. NATUURLIJK GESPREK & STERREN VRAGEN: 
+   - Begin met de vraag hoe de lekkernijen hebben gesmaakt.
+   - BELANGRIJK: Zodra je weet of ze het lekker vonden of niet, vraag je als natuurlijk bruggetje hoeveel sterren (1 t/m 5) ze SweetNesz zouden geven.
+5. AFRONDEN MET CALL-TO-ACTION: Zodra je de context én de sterren weet, markeer je de status als "klaar". 
+   - In je afsluitende 'reply' benoem je hun feedback en de sterren. (Zet ZELF GEEN links in deze tekst).
+6. NA DE AFRONDING (SUPPORT) & LINK OPNIEUW STUREN: Als de klant na afronding nog een vraag stelt, markeer je de status als "support".
+   - CRUCIAAL: Als de klant vraagt om de link nog een keer te sturen, gebruik dan EXACT het woord "[LINK]" in je tekst.
 
-SENTIMENT BEPALEN:
-- 1-3 sterren OF klachten = "negative"
-- 4-5 sterren OF blij = "positive"
-- Onduidelijk = "neutral"
+Regels voor sentiment:
+- Klachten of 1 t/m 3 sterren = "negative".
+- Tevreden reacties of 4 en 5 sterren = "positive".
+- Bij twijfel = "neutral".
 
-===== KRITIEK KRITIEK KRITIEK =====
-JIJ STUURT ALLEEN JSON. NIETS ANDERS.
-GEEN NEDERLANDSE TEKST ERBUITEN.
-GEEN MARKDOWN, GEEN BACKTICKS.
-ALLEEN PURE JSON.
-
-EXACT DIT FORMAAT:
-{"reply":"je nederlandse boodschap hier","status":"chatting","sentiment":"neutral"}
-
-VOORBEELDEN (KOPIEEER STIJL):
-{"reply":"Hoe hebben de lekkernijen gesmaakt?","status":"chatting","sentiment":"neutral"}
-{"reply":"Wat leuk! Zou je SweetNesz 1 tot 5 sterren geven?","status":"chatting","sentiment":"positive"}
-{"reply":"Ik begrijp dat je wat meer had verwacht. Zou je SweetNesz 1 tot 5 sterren geven?","status":"chatting","sentiment":"negative"}
-{"reply":"Dank je wel! Je gaf ons 5 sterren - we waarderen dit enorm!","status":"klaar","sentiment":"positive"}
-
-WAARSCHUWING: ALS JE IETS ANDERS DAN JSON STUURT, BREEKT ALLES.`;
+UITERMATE BELANGRIJK: JOUW ENIGE OUTPUT MAG STRICT JSON ZIJN. GEEN ANDERE TEKST IS TOEGESTAAN. 
+Formaat:
+{
+  "reply": "Hier komt jouw gepersonaliseerde reactie",
+  "status": "chatting",
+  "sentiment": "neutral"
+}`;
 
 const model = genAI.getGenerativeModel({
-    model: "gemini-3.1-flash-lite",
-    systemInstruction: instructiePrompt
+    model: "gemini-3.1-flash-lite", 
+    systemInstruction: instructiePrompt,
+    generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.4 
+    }
 });
 
 app.post('/api/chat', async (req, res) => {
     const { sessionId, message } = req.body;
-    
-    if (!sessionId || !message) {
-        return res.status(400).json({ error: "Ongeldige data - sessionId en message verplicht" });
-    }
+    if (!sessionId || !message) return res.status(400).json({ error: "Ongeldige data" });
 
     try {
         if (message === '/start') {
-            console.log(`\n✨ [${sessionId}] === NIEUWE SESSIE GESTART ===`);
+            console.log(`[${sessionId}] Nieuwe web-sessie gestart.`);
             actieveGesprekken[sessionId] = {
                 chatSessie: model.startChat({ history: [] }),
-                linkVerstuurd: false,
-                createdAt: new Date().toISOString()
+                linkVerstuurd: false
             };
             
             const chatData = actieveGesprekken[sessionId];
-            console.log(`[${sessionId}] Chat history initialized`);
-            
-            const aiResponse = await chatData.chatSessie.sendMessage(
-                "Klant opent de chat. Jij bent SweetNesz assistent. Stuur JSON. Nu.",
-                {
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        temperature: 0.3,
-                        maxOutputTokens: 200
-                    }
-                }
-            );
-            
-            const rawText = aiResponse.response.text();
-            console.log(`[${sessionId}] AI Response (raw):`, rawText.substring(0, 200));
-            
-            const eindTekst = await verwerkAiAntwoord(sessionId, rawText, chatData);
+            const aiResponse = await chatData.chatSessie.sendMessage("De klant opent de chat. BEHOUD JE ROL! Reageer als de SweetNesz assistent. Vraag hoe de lekkernijen smaakten en gebruik STRICT HET JSON FORMAAT. Geef GEEN opties, maar voer het gesprek.");
+            const eindTekst = await verwerkAiAntwoord(sessionId, aiResponse.response.text(), chatData);
             return res.json({ reply: eindTekst });
         }
 
         if (!actieveGesprekken[sessionId]) {
-            console.log(`⚠️ [${sessionId}] Sessie niet gevonden (verlopen)`);
-            return res.json({ 
-                reply: "Je sessie is verlopen. Vernieuw de pagina om opnieuw te beginnen." 
-            });
+            return res.json({ reply: "Je sessie is verlopen. Vernieuw de pagina om opnieuw te beginnen." });
         }
 
+        console.log(`📩 Web-klant [${sessionId}]: "${message}"`);
         const chatData = actieveGesprekken[sessionId];
-        console.log(`\n📩 [${sessionId}] Klant stuurt: "${message.substring(0, 100)}"`);
+        const aiResponse = await chatData.chatSessie.sendMessage(message);
         
-        const aiResponse = await chatData.chatSessie.sendMessage(message, {
-            generationConfig: {
-                responseMimeType: "application/json",
-                temperature: 0.3,
-                maxOutputTokens: 200
-            }
-        });
-        
-        const rawText = aiResponse.response.text();
-        console.log(`[${sessionId}] AI Response (raw):`, rawText.substring(0, 200));
-        
-        const eindTekst = await verwerkAiAntwoord(sessionId, rawText, chatData);
+        const eindTekst = await verwerkAiAntwoord(sessionId, aiResponse.response.text(), chatData);
         res.json({ reply: eindTekst });
 
     } catch (error) {
-        console.error(`\n❌ [${sessionId}] API FOUT:`, error.message);
-        console.error("Stack:", error.stack);
-        res.status(500).json({ 
-            reply: "Er is een tijdelijke storing bij de AI. Probeer het over een minuutje opnieuw." 
-        });
+        console.error("❌ API Fout opgetreden:", error.message);
+        res.status(500).json({ reply: "Er is een tijdelijke storing bij de AI. Probeer het over een minuutje opnieuw." });
     }
 });
 
 async function verwerkAiAntwoord(sessionId, aiTekst, chatData) {
-    console.log(`\n--- RUWE AI TEKST [${sessionId}] ---`);
-    console.log(aiTekst);
-    console.log("---------------------\n");
+    console.log(`\n--- RUWE AI TEKST ---\n${aiTekst}\n---------------------\n`);
     
     let aiData;
-    let isValidJson = false;
-
     try {
-        // Poging 1: Direct JSON parse
-        aiData = JSON.parse(aiTekst);
-        isValidJson = true;
-        console.log(`✅ [${sessionId}] JSON VALID - Direct parse gelukt`);
-    } catch (error1) {
-        try {
-            // Poging 2: Verwijder backticks en probeer opnieuw
-            const schoneJson = aiTekst
-                .replace(/```json/gi, '')
-                .replace(/```/g, '')
-                .replace(/`/g, '')
-                .replace(/\n/g, ' ')
-                .trim();
-            
-            aiData = JSON.parse(schoneJson);
-            isValidJson = true;
-            console.log(`✅ [${sessionId}] JSON VALID - Na backtick cleanup`);
-        } catch (error2) {
-            try {
-                // Poging 3: Extract JSON from text (als AI text eromheen zette)
-                const jsonMatch = aiTekst.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    aiData = JSON.parse(jsonMatch[0]);
-                    isValidJson = true;
-                    console.log(`✅ [${sessionId}] JSON VALID - Extracted from text`);
-                } else {
-                    throw new Error("Geen JSON gevonden in tekst");
-                }
-            } catch (error3) {
-                // Poging 4: AIRBAG - Fallback
-                console.log(`\n⚠️⚠️⚠️ [${sessionId}] JSON PARSE TRIPLE FAILED - AIRBAG ACTIVATED!!!`);
-                console.log(`   Raw text: ${aiTekst.substring(0, 150)}`);
-                console.log(`   Error 1: ${error1.message}`);
-                console.log(`   Error 2: ${error2.message}`);
-                console.log(`   Error 3: ${error3.message}\n`);
-                
-                aiData = {
-                    reply: "Oeps, er ging iets mis met het bericht. Probeer het opnieuw alsjeblieft.",
-                    status: "chatting",
-                    sentiment: "neutral"
-                };
-                
-                console.log(`🛟 [${sessionId}] FALLBACK OBJECT AANGEMAAKT`);
-            }
-        }
+        // Veilige methode voor VS Code: tekst simpel opsplitsen zonder ingewikkelde regex
+        let schoneJson = aiTekst.split('```json').join('').split('```').join('').trim();
+        aiData = JSON.parse(schoneJson);
+    } catch (error) {
+        console.log("⚠️ AI was eigenwijs en stuurde geen JSON. Airbag geactiveerd.");
+        let ruweTekst = aiTekst.split('```json').join('').split('```').join('').trim();
+        aiData = {
+            reply: ruweTekst, 
+            status: "chatting", 
+            sentiment: "neutral"
+        };
     }
 
-    // Validatie van aiData properties
-    if (!aiData.reply || typeof aiData.reply !== 'string' || aiData.reply.trim() === '') {
-        console.log(`⚠️ [${sessionId}] Reply is leeg - default tekst gezet`);
-        aiData.reply = "Wacht even, ik verstond je niet goed. Kan je het opnieuw zeggen?";
-    }
-    if (!aiData.status || !['chatting', 'klaar', 'support'].includes(aiData.status)) {
-        aiData.status = "chatting";
-    }
-    if (!aiData.sentiment || !['positive', 'negative', 'neutral'].includes(aiData.sentiment)) {
-        aiData.sentiment = "neutral";
-    }
-
-    console.log(`🤖 [${sessionId}] Status: ${aiData.status} | Sentiment: ${aiData.sentiment} | IsValidJSON: ${isValidJson}`);
+    console.log(`🤖 AI Status: ${aiData.status} | Sentiment: ${aiData.sentiment}`);
     
-    let uiteindelijkeTekst = aiData.reply;
+    let uiteindelijkeTekst = aiData.reply || "Oeps, er ging iets mis met het bericht.";
 
-    // Vervang [LINK] placeholder als aanwezig
     if (uiteindelijkeTekst.includes("[LINK]")) {
-        const deJuisteLink = (aiData.sentiment === "negative") 
-            ? "[https://feedback.sweetnesz.com/review](https://feedback.sweetnesz.com/review)" 
-            : "[https://g.page/SweetNesz/review](https://g.page/SweetNesz/review)";
+        const deJuisteLink = (aiData.sentiment === "negative") ? "https://feedback.nesz/review" : "https://google.nl/review";
         uiteindelijkeTekst = uiteindelijkeTekst.replace("[LINK]", deJuisteLink);
-        console.log(`🔗 [${sessionId}] [LINK] placeholder vervangen`);
     }
 
-    // Append review link als status "klaar" en link nog niet verstuurd
     if (aiData.status === "klaar" && !chatData.linkVerstuurd) {
-        const reviewLink = (aiData.sentiment === "negative") 
-            ? "\n\n[https://feedback.sweetnesz.com/review](https://feedback.sweetnesz.com/review)" 
-            : "\n\n[https://g.page/SweetNesz/review](https://g.page/SweetNesz/review)";
-        
-        uiteindelijkeTekst += reviewLink;
-        chatData.linkVerstuurd = true;
-        
-        console.log(`✅ [${sessionId}] === CONVERSATION COMPLETED ===`);
-        console.log(`   Final Status: ${aiData.status}`);
-        console.log(`   Sentiment: ${aiData.sentiment}`);
-        console.log(`   Review link appended`);
+        let link = (aiData.sentiment === "negative") ? "https://feedback.nesz/review" : "https://google.nl/review";
+        uiteindelijkeTekst += "\n\n" + link;
+        chatData.linkVerstuurd = true; 
+        console.log(`[${sessionId}] Review link verstuurd.`);
     }
 
     return uiteindelijkeTekst;
@@ -225,28 +125,5 @@ async function verwerkAiAntwoord(sessionId, aiTekst, chatData) {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`\n${'='.repeat(60)}`);
-    console.log(`✅ Review Autopilot webserver draait op poort ${PORT}`);
-    console.log(`📍 Gemini Model: gemini-3.1-flash-lite`);
-    console.log(`🔧 Mode: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`${'='.repeat(60)}\n`);
+    console.log(`✅ Webserver draait op poort ${PORT}`);
 });
-
-// Cleanup: Verwijder stale sessions na 1 uur inactiviteit
-setInterval(() => {
-    const now = Date.now();
-    const MAX_SESSION_AGE = 60 * 60 * 1000; // 1 hour
-    
-    let clearedCount = 0;
-    for (const [sessionId, chatData] of Object.entries(actieveGesprekken)) {
-        const sessionAge = now - new Date(chatData.createdAt).getTime();
-        if (sessionAge > MAX_SESSION_AGE) {
-            delete actieveGesprekken[sessionId];
-            clearedCount++;
-        }
-    }
-    
-    if (clearedCount > 0) {
-        console.log(`🧹 Cleanup: ${clearedCount} stale session(s) verwijderd`);
-    }
-}, 5 * 60 * 1000); // Check elke 5 minuten

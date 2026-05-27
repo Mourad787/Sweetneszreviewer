@@ -31,18 +31,19 @@ Jouw taken & STRICTE REGELS:
 5. AFRONDEN MET CALL-TO-ACTION: Zodra je de context én de sterren weet, markeer je de status als "klaar". 
    - In je afsluitende 'reply' benoem je hun feedback en de sterren, en vraag je of ze dit precies zo willen opschrijven via de link. (Zet ZELF GEEN links in deze tekst).
 6. NA DE AFRONDING (SUPPORT) & LINK OPNIEUW STUREN: Als de klant na afronding nog een vraag stelt, markeer je de status als "support".
-   - CRUCIAAL: Als de klant vraagt om de link nog een keer te sturen, gebruik dan EXACT het woord "[LINK]" in je tekst. Het systeem vervangt dit automatisch door de juiste URL.
+   - CRUCIAAL: Als de klant vraagt om de link nog een keer te sturen, gebruik dan EXACT het woord "[LINK]" in je tekst. Het systeem vervangt dit automatisch.
 
 Regels voor sentiment:
 - Klachten of 1 t/m 3 sterren = "negative".
 - Tevreden reacties of 4 en 5 sterren = "positive".
 - Bij twijfel = "neutral".
 
-LET OP: Je output MOET ALTIJD STRICT JSON ZIJN:
+UITERMATE BELANGRIJK: JIJ BENT EEN GECODEERDE API. JOUW ENIGE OUTPUT MAG STRICT JSON ZIJN. GEEN ENKELE ANDERE TEKST IS TOEGESTAAN. 
+Je moet ALTIJD EXACT dit JSON formaat gebruiken en niets anders:
 {
-  "reply": "Jouw gepersonaliseerde, KORTE reactie. ABSOLUUT GEEN EMOJI'S.",
-  "status": "chatting", "klaar", of "support",
-  "sentiment": "none", "positive", "neutral", of "negative"
+  "reply": "Hier komt jouw gepersonaliseerde, korte reactie",
+  "status": "chatting",
+  "sentiment": "neutral"
 }`;
 
 const model = genAI.getGenerativeModel({

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SweetNesz Feedback DEMO</title>
+    <style>
+        /* Basis Reset */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #d1d7db; /* Grijze achtergrond voor desktop */
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            height: 100vh; 
+        }
+
+        /* De opvallende DEMO Banner */
+        .demo-banner {
+            width: 100%;
+            background-color: #ff9800;
+            color: #fff;
+            text-align: center;
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        /* De Chat Telefoon (Container) */
+        #chat-container { 
+            width: 100%; 
+            max-width: 450px; /* Zorgt voor een telefoon-look op desktop */
+            background-color: #efeae2; /* Typische WhatsApp web achtergrond */
+            display: flex; 
+            flex-direction: column; 
+            height: 100%; 
+            flex-grow: 1;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        /* Chat Header */
+        #header { 
+            background-color: #075e54; 
+            color: white; 
+            padding: 15px 20px; 
+            display: flex;
+            align-items: center;
+            font-size: 1.1rem; 
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 5;
+        }
+        .avatar {
+            background-color: #fff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            font-size: 1.2rem;
+        }
+
+        /* Chat Berichten Veld */
+        #chat-box { 
+            flex: 1; 
+            padding: 20px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* Subtiel WhatsApp patroon */
+            background-repeat: repeat;
+        }
+
+        /* Bubbels */
+        .message { 
+            margin-bottom: 12px; 
+            padding: 10px 14px; 
+            border-radius: 8px; 
+            max-width: 85%; 
+            line-height: 1.4; 
+            font-size: 0.95rem;
+            word-wrap: break-word; 
+            position: relative;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+        }
+        .bot-message { 
+            background-color: #ffffff; 
+            align-self: flex-start; 
+            border-top-left-radius: 0; 
+            color: #303030;
+        }
+        .user-message { 
+            background-color: #dcf8c6; 
+            align-self: flex-end; 
+            border-top-right-radius: 0; 
+            color: #303030;
+        }
+
+        /* Typ-indicator & links */
+        .loading { font-style: italic; color: #888; font-size: 0.85em; background-color: transparent; box-shadow: none; padding: 0;}
+        a { color: #027eb5; text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+
+        /* Invoerveld (Bodem) */
+        #input-area { 
+            display: flex; 
+            padding: 10px 15px; 
+            background-color: #f0f0f0; 
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom, 10px); /* Voor iPhone notch */
+        }
+        #message-input { 
+            flex: 1; 
+            padding: 14px 20px; 
+            border: none; 
+            border-radius: 25px; 
+            outline: none; 
+            font-size: 16px; /* 16px voorkomt auto-zoom op iPhones */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        #send-btn { 
+            background-color: #128C7E; 
+            color: white; 
+            border: none; 
+            width: 46px;
+            height: 46px;
+            margin-left: 10px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            transition: background-color 0.2s;
+        }
+        #send-btn:hover { background-color: #075e54; }
+        
+        /* Icoontje voor verzenden */
+        .send-icon {
+            width: 20px;
+            height: 20px;
+            fill: white;
+            margin-left: 3px;
+        }
+
+        /* Zorgt dat op mobiel de chat 100% is en geen randen heeft */
+        @media (max-width: 500px) {
+            #chat-container { max-width: 100%; box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="demo-banner">
+        ⚠️ Let op: Dit is een DEMO/test omgeving. Normaal verloopt dit geautomatiseerd via WhatsApp.
+    </div>
+
+    <div id="chat-container">
+        <div id="header">
+            <div class="avatar">🧁</div>
+            <div class="header-info">SweetNesz Klantenservice</div>
+        </div>
+        
+        <div id="chat-box">
+            <!-- Berichten komen hier -->
+        </div>
+        
+        <div id="input-area">
+            <input type="text" id="message-input" placeholder="Typ een bericht..." autocomplete="off">
+            <button id="send-btn" aria-label="Verstuur">
+                <!-- Simpel paperplane SVG icoontje -->
+                <svg class="send-icon" viewBox="0 0 24 24">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        
+        // Genereer een random ID voor deze tester
+        const sessionId = Math.random().toString(36).substring(2, 15);
+
+        // Zorgt dat we URL's in de bot-tekst klikbaar maken
+        function linkify(text) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlRegex, function(url) {
+                return '<a href="' + url + '" target="_blank">' + url + '</a>';
+            });
+        }
+
+        // Voeg bericht toe aan de chat
+        function addMessage(text, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
+            
+            if (sender === 'bot') {
+                msgDiv.innerHTML = linkify(text.replace(/\n/g, '<br>'));
+            } else {
+                msgDiv.innerText = text;
+            }
+
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return msgDiv;
+        }
+
+        // Stuur bericht naar de server
+        async function sendMessage(text, isInit = false) {
+            if (!text.trim() && !isInit) return;
+            
+            if (!isInit) {
+                addMessage(text, 'user');
+                messageInput.value = '';
+            }
+
+            const loadingMsg = addMessage("Aan het typen...", 'bot');
+            loadingMsg.classList.add('loading');
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId, message: isInit ? '/start' : text })
+                });
+                const data = await response.json();
+                
+                chatBox.removeChild(loadingMsg);
+                addMessage(data.reply, 'bot');
+            } catch (error) {
+                chatBox.removeChild(loadingMsg);
+                addMessage("Kan de server niet bereiken. Draait de applicatie?", 'bot');
+            }
+        }
+
+        // Knoppen en interactie
+        sendBtn.addEventListener('click', () => sendMessage(messageInput.value));
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage(messageInput.value);
+        });
+
+        // Automatisch starten na inladen
+        window.onload = () => sendMessage('', true);
+    </script>
+
+</body>
+</html>

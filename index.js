@@ -7,45 +7,42 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-// Serveer de frontend (de chat-interface) uit de 'public' map
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Initialiseer Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const actieveGesprekken = {};
 
 console.log("🚀 Review Autopilot (Web Editie) is opgestart voor: SweetNesz...");
 
-// De strakke, gepersonaliseerde System Instruction voor SweetNesz
 const instructiePrompt = `Jij bent de virtuele klantenservice assistent van 'SweetNesz', een patisserie aan huis gespecialiseerd in zelfgemaakte, ambachtelijke koekjes, gebakjes en taarten op bestelling. 
 Je neemt via WhatsApp contact op met een klant die zojuist hun bestelling heeft afgehaald. Jouw ENIGE doel is feedback verzamelen.
 
 Jouw taken & STRICTE REGELS:
-1. GEEN PRODUCT-TAAL: Spreek NOOIT over "producten" of "items". Spreek warm over "lekkernijen", "gebakjes", "taartjes", of een "doosje met lekkers". Benadruk het ambachtelijke gevoel.
+1. GEEN PRODUCT-TAAL: Spreek NOOIT over "producten" of "items". Spreek warm over "lekkernijen", "gebakjes", "taartjes", of een "doosje met lekkers".
 2. GEEN EMOJI'S: Gebruik absoluut geen emoji's. Houd de toon professioneel, warm en kort.
 3. ÉÉN VRAAG TEGELIJK: Stel NOOIT meerdere vragen in één bericht. Wacht geduldig op het antwoord.
 4. NATUURLIJK GESPREK & STERREN VRAGEN: 
-   - Begin met de vraag hoe de lekkernijen hebben gesmaakt. Vraag eventueel door naar de presentatie of smaken.
+   - Begin met de vraag hoe de lekkernijen hebben gesmaakt.
    - BELANGRIJK: Zodra je weet of ze het lekker vonden of niet, vraag je als natuurlijk bruggetje hoeveel sterren (1 t/m 5) ze SweetNesz zouden geven.
 5. AFRONDEN MET CALL-TO-ACTION: Zodra je de context én de sterren weet, markeer je de status als "klaar". 
-   - In je afsluitende 'reply' benoem je hun feedback en de sterren, en vraag je of ze dit precies zo willen opschrijven via de link. (Zet ZELF GEEN links in deze tekst).
+   - In je afsluitende 'reply' benoem je hun feedback en de sterren. (Zet ZELF GEEN links in deze tekst).
 6. NA DE AFRONDING (SUPPORT) & LINK OPNIEUW STUREN: Als de klant na afronding nog een vraag stelt, markeer je de status als "support".
-   - CRUCIAAL: Als de klant vraagt om de link nog een keer te sturen, gebruik dan EXACT het woord "[LINK]" in je tekst. Het systeem vervangt dit automatisch.
+   - CRUCIAAL: Als de klant vraagt om de link nog een keer te sturen, gebruik dan EXACT het woord "[LINK]" in je tekst.
 
 Regels voor sentiment:
 - Klachten of 1 t/m 3 sterren = "negative".
 - Tevreden reacties of 4 en 5 sterren = "positive".
 - Bij twijfel = "neutral".
 
-UITERMATE BELANGRIJK: JIJ BENT EEN GECODEERDE API. JOUW ENIGE OUTPUT MAG STRICT JSON ZIJN. GEEN ENKELE ANDERE TEKST IS TOEGESTAAN. 
-Je moet ALTIJD EXACT dit JSON formaat gebruiken en niets anders:
+UITERMATE BELANGRIJK: JOUW ENIGE OUTPUT MAG STRICT JSON ZIJN. GEEN ANDERE TEKST IS TOEGESTAAN. 
+Formaat:
 {
-  "reply": "Hier komt jouw gepersonaliseerde, korte reactie",
+  "reply": "Hier komt jouw gepersonaliseerde reactie",
   "status": "chatting",
   "sentiment": "neutral"
 }`;
 
+// Het specifieke model ingesteld (de goedkoopste en snelste voor deze taak)
 const model = genAI.getGenerativeModel({
     model: "gemini-3.1-flash-lite", 
     systemInstruction: instructiePrompt,
@@ -55,16 +52,13 @@ const model = genAI.getGenerativeModel({
     }
 });
 
-// Het eindpunt waar de index.html naartoe communiceert
 app.post('/api/chat', async (req, res) => {
     const { sessionId, message } = req.body;
-
     if (!sessionId || !message) return res.status(400).json({ error: "Ongeldige data" });
 
     try {
         if (message === '/start') {
             console.log(`[${sessionId}] Nieuwe web-sessie gestart.`);
-            
             actieveGesprekken[sessionId] = {
                 chatSessie: model.startChat({ history: [] }),
                 linkVerstuurd: false
@@ -73,7 +67,6 @@ app.post('/api/chat', async (req, res) => {
             const chatData = actieveGesprekken[sessionId];
             const aiResponse = await chatData.chatSessie.sendMessage("De klant heeft de chat geopend. Stuur het eerste begroetingsbericht.");
             const eindTekst = await verwerkAiAntwoord(sessionId, aiResponse.response.text(), chatData);
-            
             return res.json({ reply: eindTekst });
         }
 
@@ -89,44 +82,51 @@ app.post('/api/chat', async (req, res) => {
         res.json({ reply: eindTekst });
 
     } catch (error) {
-        console.error("❌ Fout opgetreden:", error.message);
-        res.status(500).json({ reply: "Er is een tijdelijke storing. Probeer het over een minuutje opnieuw." });
+        console.error("❌ API Fout opgetreden:", error.message);
+        res.status(500).json({ reply: "Er is een tijdelijke storing bij de AI. Probeer het over een minuutje opnieuw." });
     }
 });
 
 async function verwerkAiAntwoord(sessionId, aiTekst, chatData) {
+    console.log(`\n--- RUWE AI TEKST ---\n${aiTekst}\n---------------------\n`);
+    
+    let aiData;
     try {
-        // Regex is escaped om syntax-errors bij copy-pasten te voorkomen
-        const schoneJson = aiTekst.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
-        const aiData = JSON.parse(schoneJson);
-
-        console.log(`🤖 AI Status: ${aiData.status} | Sentiment: ${aiData.sentiment}`);
-
-        let uiteindelijkeTekst = aiData.reply;
-
-        // Vervang het de [LINK] placeholder als de klant erom vraagt (in Support fase)
-        if (uiteindelijkeTekst.includes("[LINK]")) {
-            const deJuisteLink = (aiData.sentiment === "negative") ? "https://feedback.nesz/review" : "https://google.nl/review";
-            uiteindelijkeTekst = uiteindelijkeTekst.replace("[LINK]", deJuisteLink);
-        }
-
-        // Afronding: Plak de link er de eerste keer automatisch onder
-        if (aiData.status === "klaar" && !chatData.linkVerstuurd) {
-            let link = (aiData.sentiment === "negative") ? "https://feedback.nesz/review" : "https://google.nl/review";
-            uiteindelijkeTekst += "\n\n" + link;
-            chatData.linkVerstuurd = true; 
-            console.log(`[${sessionId}] Review link verstuurd.`);
-        }
-
-        return uiteindelijkeTekst;
-
+        // Poging 1: Probeer het netjes als JSON te lezen (Backticks zijn nu escaped voor de editor)
+        const schoneJson = aiTekst.replace(/\`\`\`json/gi, '').replace(/\`\`\`/g, '').trim();
+        aiData = JSON.parse(schoneJson);
     } catch (error) {
-        console.error("❌ Fout bij het parsen:", error.message);
-        return "Er ging iets mis met het verwerken van het AI antwoord.";
+        // Poging 2 (DE AIRBAG): Als de AI per ongeluk gewone tekst stuurt, crashen we niet meer!
+        console.log("⚠️ AI was eigenwijs en stuurde geen JSON. Airbag geactiveerd.");
+        aiData = {
+            reply: aiTekst.replace(/\`\`\`json/gi, '').replace(/\`\`\`/g, '').trim(), 
+            status: "chatting", 
+            sentiment: "neutral"
+        };
     }
+
+    console.log(`🤖 AI Status: ${aiData.status} | Sentiment: ${aiData.sentiment}`);
+    
+    // Extra check voor de zekerheid dat er altijd tekst is
+    let uiteindelijkeTekst = aiData.reply || "Oeps, er ging iets mis met het bericht.";
+
+    // Vervang de placeholder [LINK] door de daadwerkelijke link als erom gevraagd wordt
+    if (uiteindelijkeTekst.includes("[LINK]")) {
+        const deJuisteLink = (aiData.sentiment === "negative") ? "[https://feedback.nesz/review](https://feedback.nesz/review)" : "[https://google.nl/review](https://google.nl/review)";
+        uiteindelijkeTekst = uiteindelijkeTekst.replace("[LINK]", deJuisteLink);
+    }
+
+    // Verstuur de link als het gesprek "klaar" is en de link nog niet verstuurd is
+    if (aiData.status === "klaar" && !chatData.linkVerstuurd) {
+        let link = (aiData.sentiment === "negative") ? "[https://feedback.nesz/review](https://feedback.nesz/review)" : "[https://google.nl/review](https://google.nl/review)";
+        uiteindelijkeTekst += "\n\n" + link;
+        chatData.linkVerstuurd = true; 
+        console.log(`[${sessionId}] Review link verstuurd.`);
+    }
+
+    return uiteindelijkeTekst;
 }
 
-// Poort configuratie voor clouddiensten zoals Render.com
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`✅ Webserver draait op poort ${PORT}`);

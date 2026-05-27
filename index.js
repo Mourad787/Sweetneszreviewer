@@ -14,32 +14,40 @@ const actieveGesprekken = {};
 
 console.log("🚀 Review Autopilot (Web Editie) is opgestart voor: SweetNesz...");
 
-const instructiePrompt = `You are a customer service chatbot for SweetNesz, a home bakery specializing in handmade cookies, cakes, and pastries.
-Your ONLY goal: collect feedback from customers who just picked up their order.
+const instructiePrompt = `JE BENT DE KLANTENSERVICE CHATBOT VAN SWEETNESZ.
+ENIGE TAAK: Feedback verzamelen van klanten na hun bestelling.
 
-STRICT RULES (follow exactly):
-1. Never say "products" or "items" - use "treats", "pastries", "cakes", or "delicious things"
-2. NO EMOJIS under any circumstances
-3. Ask ONE question per message only
-4. Start with: "How did the treats taste?"
-5. After they answer about taste: ask for stars (1-5) as a natural follow-up
-6. Once you have their rating: set status to "klaar" (done)
-7. If customer continues after "klaar": set status to "support"
+ABSOLUTE REGELS (ALTIJD VOLGEN):
+1. SPREEK NEDERLANDS - ALTIJD EN ALLEEN NEDERLANDS
+2. Zeg NOOIT "producten" - zeg "lekkernijen", "gebakjes", "taartjes" of "lekkers"
+3. GEEN EMOJIS - NOOIT
+4. STEL MAAR ÉÉN VRAAG PER BERICHT
+5. Begin altijd met: "Hoe hebben de lekkernijen gesmaakt?"
+6. Na antwoord over smaak: Vraag direct naar sterren (1-5)
+7. Na sterren: status = "klaar"
+8. Als klant daarna nog wat zegt: status = "support"
 
-SENTIMENT RULES:
-- 1-3 stars OR complaints = "negative"
-- 4-5 stars OR satisfied feedback = "positive"
-- Unclear or missing info = "neutral"
+SENTIMENT BEPALEN:
+- 1-3 sterren OF klachten = "negative"
+- 4-5 sterren OF blij = "positive"
+- Onduidelijk = "neutral"
 
-CRITICAL: You MUST respond ONLY in valid JSON format. No markdown, no backticks, no extra text.
-ONLY output this structure:
-{"reply":"your message here","status":"chatting","sentiment":"neutral"}
+===== KRITIEK KRITIEK KRITIEK =====
+JIJ STUURT ALLEEN JSON. NIETS ANDERS.
+GEEN NEDERLANDSE TEKST ERBUITEN.
+GEEN MARKDOWN, GEEN BACKTICKS.
+ALLEEN PURE JSON.
 
-Examples of valid responses:
-{"reply":"How did the treats taste?","status":"chatting","sentiment":"neutral"}
-{"reply":"That's wonderful! Would you give SweetNesz 1 to 5 stars?","status":"chatting","sentiment":"positive"}
-{"reply":"I'm sorry to hear that. Would you give SweetNesz 1 to 5 stars?","status":"chatting","sentiment":"negative"}
-{"reply":"Thank you so much for your feedback! You gave us 5 stars - we truly appreciate it!","status":"klaar","sentiment":"positive"}`;
+EXACT DIT FORMAAT:
+{"reply":"je nederlandse boodschap hier","status":"chatting","sentiment":"neutral"}
+
+VOORBEELDEN (KOPIEEER STIJL):
+{"reply":"Hoe hebben de lekkernijen gesmaakt?","status":"chatting","sentiment":"neutral"}
+{"reply":"Wat leuk! Zou je SweetNesz 1 tot 5 sterren geven?","status":"chatting","sentiment":"positive"}
+{"reply":"Ik begrijp dat je wat meer had verwacht. Zou je SweetNesz 1 tot 5 sterren geven?","status":"chatting","sentiment":"negative"}
+{"reply":"Dank je wel! Je gaf ons 5 sterren - we waarderen dit enorm!","status":"klaar","sentiment":"positive"}
+
+WAARSCHUWING: ALS JE IETS ANDERS DAN JSON STUURT, BREEKT ALLES.`;
 
 const model = genAI.getGenerativeModel({
     model: "gemini-3.1-flash-lite",
@@ -66,12 +74,12 @@ app.post('/api/chat', async (req, res) => {
             console.log(`[${sessionId}] Chat history initialized`);
             
             const aiResponse = await chatData.chatSessie.sendMessage(
-                "Customer opens the chat. Respond as SweetNesz assistant. Ask how the treats tasted. Use strict JSON format.",
+                "Klant opent de chat. Jij bent SweetNesz assistent. Stuur JSON. Nu.",
                 {
                     generationConfig: {
                         responseMimeType: "application/json",
-                        temperature: 0.4,
-                        maxOutputTokens: 256
+                        temperature: 0.3,
+                        maxOutputTokens: 200
                     }
                 }
             );
@@ -96,8 +104,8 @@ app.post('/api/chat', async (req, res) => {
         const aiResponse = await chatData.chatSessie.sendMessage(message, {
             generationConfig: {
                 responseMimeType: "application/json",
-                temperature: 0.4,
-                maxOutputTokens: 256
+                temperature: 0.3,
+                maxOutputTokens: 200
             }
         });
         
@@ -128,7 +136,7 @@ async function verwerkAiAntwoord(sessionId, aiTekst, chatData) {
         // Poging 1: Direct JSON parse
         aiData = JSON.parse(aiTekst);
         isValidJson = true;
-        console.log(`✅ [${sessionId}] JSON valid en parsed`);
+        console.log(`✅ [${sessionId}] JSON VALID - Direct parse gelukt`);
     } catch (error1) {
         try {
             // Poging 2: Verwijder backticks en probeer opnieuw
@@ -136,37 +144,53 @@ async function verwerkAiAntwoord(sessionId, aiTekst, chatData) {
                 .replace(/```json/gi, '')
                 .replace(/```/g, '')
                 .replace(/`/g, '')
+                .replace(/\n/g, ' ')
                 .trim();
             
             aiData = JSON.parse(schoneJson);
             isValidJson = true;
-            console.log(`✅ [${sessionId}] JSON geparced (na backtick-cleanup)`);
+            console.log(`✅ [${sessionId}] JSON VALID - Na backtick cleanup`);
         } catch (error2) {
-            // Poging 3: AIRBAG - Fallback naar default object
-            console.log(`⚠️ [${sessionId}] JSON parse FAILED - Airbag activated!`);
-            console.log(`  Error 1: ${error1.message}`);
-            console.log(`  Error 2: ${error2.message}`);
-            
-            aiData = {
-                reply: aiTekst
-                    .replace(/```json/gi, '')
-                    .replace(/```/g, '')
-                    .replace(/`/g, '')
-                    .trim(),
-                status: "chatting",
-                sentiment: "neutral"
-            };
-            
-            console.log(`🛟 [${sessionId}] Fallback geactiveerd - status/sentiment set to neutral/chatting`);
+            try {
+                // Poging 3: Extract JSON from text (als AI text eromheen zette)
+                const jsonMatch = aiTekst.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    aiData = JSON.parse(jsonMatch[0]);
+                    isValidJson = true;
+                    console.log(`✅ [${sessionId}] JSON VALID - Extracted from text`);
+                } else {
+                    throw new Error("Geen JSON gevonden in tekst");
+                }
+            } catch (error3) {
+                // Poging 4: AIRBAG - Fallback
+                console.log(`\n⚠️⚠️⚠️ [${sessionId}] JSON PARSE TRIPLE FAILED - AIRBAG ACTIVATED!!!`);
+                console.log(`   Raw text: ${aiTekst.substring(0, 150)}`);
+                console.log(`   Error 1: ${error1.message}`);
+                console.log(`   Error 2: ${error2.message}`);
+                console.log(`   Error 3: ${error3.message}\n`);
+                
+                aiData = {
+                    reply: "Oeps, er ging iets mis met het bericht. Probeer het opnieuw alsjeblieft.",
+                    status: "chatting",
+                    sentiment: "neutral"
+                };
+                
+                console.log(`🛟 [${sessionId}] FALLBACK OBJECT AANGEMAAKT`);
+            }
         }
     }
 
     // Validatie van aiData properties
-    if (!aiData.reply || typeof aiData.reply !== 'string') {
-        aiData.reply = "Oeps, er ging iets mis met het bericht.";
+    if (!aiData.reply || typeof aiData.reply !== 'string' || aiData.reply.trim() === '') {
+        console.log(`⚠️ [${sessionId}] Reply is leeg - default tekst gezet`);
+        aiData.reply = "Wacht even, ik verstond je niet goed. Kan je het opnieuw zeggen?";
     }
-    if (!aiData.status) aiData.status = "chatting";
-    if (!aiData.sentiment) aiData.sentiment = "neutral";
+    if (!aiData.status || !['chatting', 'klaar', 'support'].includes(aiData.status)) {
+        aiData.status = "chatting";
+    }
+    if (!aiData.sentiment || !['positive', 'negative', 'neutral'].includes(aiData.sentiment)) {
+        aiData.sentiment = "neutral";
+    }
 
     console.log(`🤖 [${sessionId}] Status: ${aiData.status} | Sentiment: ${aiData.sentiment} | IsValidJSON: ${isValidJson}`);
     

@@ -65,8 +65,7 @@ app.post('/api/chat', async (req, res) => {
             };
             
             const chatData = actieveGesprekken[sessionId];
-            const aiResponse = await chatData.chatSessie.sendMessage("De klant heeft de chat geopend. Stuur het eerste begroetingsbericht.");
-            const eindTekst = await verwerkAiAntwoord(sessionId, aiResponse.response.text(), chatData);
+            const aiResponse = await chatData.chatSessie.sendMessage("De klant opent de chat. BEHOUD JE ROL! Reageer als de SweetNesz assistent. Vraag hoe de lekkernijen smaakten en gebruik STRICT HET JSON FORMAAT. Geef GEEN opties, maar voer het gesprek.");            const eindTekst = await verwerkAiAntwoord(sessionId, aiResponse.response.text(), chatData);
             return res.json({ reply: eindTekst });
         }
 

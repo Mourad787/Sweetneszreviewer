@@ -46,7 +46,7 @@ Formaat:
 }`;
 
 const model = genAI.getGenerativeModel({
-    model: "gemini-3.1-flash-lite", 
+    model: "gemini-2.5-flash-lite", // Aangepast naar het model uit jouw lijst
     systemInstruction: instructiePrompt,
     generationConfig: {
         responseMimeType: "application/json",

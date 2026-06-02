@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Review Autopilot — SweetsNesz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['DM Sans','sans-serif'], serif: ['DM Serif Display','serif'] },
+          colors: {
+            teal: { 50:'#e1f5ee',100:'#9fe1cb',200:'#5dcaa5',400:'#1d9e75',500:'#0f9d74',600:'#0f6e56',700:'#0a5240',800:'#085041',900:'#04342c' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:'DM Sans',sans-serif}
+    ::-webkit-scrollbar{width:4px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}
+    .sidebar-link{transition:background .15s ease,color .15s ease}
+    .review-card{transition:box-shadow .2s ease,transform .2s ease}
+    .review-card:hover{box-shadow:0 4px 24px rgba(0,0,0,0.08);transform:translateY(-1px)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spinner{animation:spin .8s linear infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+    .cursor-blink::after{content:'|';animation:blink .7s infinite;color:#0f6e56;font-weight:300}
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .fade-in{animation:fadeInUp .3s ease forwards}
+    .fade-in-d1{animation:fadeInUp .3s .06s ease both}
+    .fade-in-d2{animation:fadeInUp .3s .12s ease both}
+    .fade-in-d3{animation:fadeInUp .3s .18s ease both}
+    .fade-in-d4{animation:fadeInUp .3s .24s ease both}
+    .modal-backdrop{background:rgba(15,27,46,.5);backdrop-filter:blur(5px)}
+    .ai-response-box{background:linear-gradient(135deg,#f0fdf4 0%,#e1f5ee 100%);border:1px solid #9fe1cb}
+    .nav-active{background:#e1f5ee;color:#0f6e56}
+    @keyframes copyFlash{0%{background-color:#9fe1cb}100%{background-color:transparent}}
+    .copy-flash{animation:copyFlash .5s ease}
+    @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+    .slide-down{animation:slideDown .25s ease forwards}
+    .response-area{transition:all .3s ease}
+    /* Editable response box */
+    .editable-response{outline:none;white-space:pre-wrap;min-height:80px}
+    .editable-response:focus{outline:2px solid #9fe1cb;border-radius:8px}
+    /* Pagination */
+    .page-btn{transition:all .15s}
+    .page-btn.active{background:#0f6e56;color:white}
+    /* Toast */
+    @keyframes toastIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes toastOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(20px)}}
+    .toast-enter{animation:toastIn .25s ease forwards}
+    .toast-exit{animation:toastOut .25s ease forwards}
+    /* Star hover */
+    .star-btn:hover~.star-btn svg,.star-btn:hover svg{color:#f59e0b!important}
+    /* Inline edit */
+    .inline-edit-btn{opacity:0;transition:opacity .15s}
+    .review-card:hover .inline-edit-btn{opacity:1}
+    /* Chip */
+    .chip{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:600}
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+<!-- ═══════ LOGIN ═══════ -->
+<div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-10">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-600 mb-4 shadow-md">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4V8z" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <h1 class="text-2xl font-semibold tracking-tight text-slate-900">Review Autopilot</h1>
+      <p class="text-sm text-slate-400 mt-1">Geautomatiseerd reviewbeheer met AI</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+      <h2 class="text-base font-semibold text-slate-700 mb-6">Inloggen</h2>
+      <div id="loginError" class="hidden mb-4 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <p id="loginErrorText" class="text-xs text-red-600 font-medium"></p>
+      </div>
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-slate-500 mb-1.5">Gebruikersnaam</label>
+        <input id="username" type="text" placeholder="Jouw gebruikersnaam" class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-slate-50 text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition" />
+      </div>
+      <div class="mb-6">
+        <label class="block text-xs font-medium text-slate-500 mb-1.5">Wachtwoord</label>
+        <input id="password" type="password" placeholder="••••••••" class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-slate-50 text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition" />
+        <p class="text-xs text-slate-400 mt-1.5">Demo: gebruik <strong>SweetsNesz</strong> als gebruikersnaam</p>
+      </div>
+      <button onclick="handleLogin()" class="w-full py-2.5 rounded-lg bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 active:scale-[.98] transition">Inloggen</button>
+    </div>
+    <p class="text-center text-xs text-slate-400 mt-6">Review Autopilot &copy; 2026</p>
+  </div>
+</div>
+
+<!-- ═══════ DASHBOARD ═══════ -->
+<div id="dashboard" class="hidden min-h-screen flex">
+
+  <!-- SIDEBAR -->
+  <aside class="w-60 min-h-screen bg-white border-r border-slate-100 flex flex-col sticky top-0 h-screen z-30">
+    <div class="px-5 py-5 border-b border-slate-100">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center flex-shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4V8z" fill="currentColor" stroke="none"/></svg>
+        </div>
+        <div><p class="text-sm font-semibold text-slate-800 leading-none">Review Autopilot</p><p class="text-[10px] text-slate-400 mt-0.5">AI-powered</p></div>
+      </div>
+    </div>
+    <nav class="flex-1 px-3 py-4 space-y-1">
+      <button id="nav-overview" onclick="switchPage('overview')" class="sidebar-link nav-active w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left">
+        <svg xmlns="http://www.w3.org/2000/svg" class="nav-icon w-4 h-4 flex-shrink-0 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span class="text-sm font-medium">Overzicht</span>
+      </button>
+      <button id="nav-reviews" onclick="switchPage('reviews')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-500 hover:bg-slate-50 hover:text-slate-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="nav-icon w-4 h-4 flex-shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="text-sm font-medium">Klantinteracties</span>
+        <span id="newBadge" class="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">0</span>
+      </button>
+      <button id="nav-analytics" onclick="switchPage('analytics')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-500 hover:bg-slate-50 hover:text-slate-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="nav-icon w-4 h-4 flex-shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span class="text-sm font-medium">Analyses</span>
+      </button>
+      <button id="nav-settings" onclick="switchPage('settings')" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-500 hover:bg-slate-50 hover:text-slate-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="nav-icon w-4 h-4 flex-shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="text-sm font-medium">Instellingen</span>
+      </button>
+    </nav>
+    <div class="px-3 py-4 border-t border-slate-100">
+      <div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-50">
+        <div class="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center flex-shrink-0"><span class="text-white text-xs font-semibold">SN</span></div>
+        <div class="flex-1 min-w-0"><p class="text-sm font-medium text-slate-700 truncate">SweetsNesz</p><p class="text-[10px] text-slate-400">Beheerder</p></div>
+        <button onclick="handleLogout()" title="Uitloggen" class="text-slate-400 hover:text-red-500 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <header class="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 py-4 flex items-center justify-between">
+      <div>
+        <h1 id="pageTitle" class="text-base font-semibold text-slate-800">Overzicht</h1>
+        <p id="pageSubtitle" class="text-xs text-slate-400 mt-0.5">Welkom terug, SweetsNesz</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="relative p-2 rounded-lg hover:bg-slate-100 text-slate-400 transition" onclick="showToast('Geen nieuwe meldingen')">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-teal-500 rounded-full border-2 border-white"></span>
+        </button>
+        <div id="statusBadge" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
+          <span id="statusDot" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+          <span id="statusText" class="text-xs font-semibold text-amber-600">Demo Modus</span>
+        </div>
+      </div>
+    </header>
+    <main id="mainContent" class="flex-1 overflow-y-auto px-8 py-8 space-y-6"></main>
+  </div>
+</div>
+
+<!-- ═══════ AI MODAL ═══════ -->
+<div id="aiModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+  <div class="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-xl fade-in overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-teal-600 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-slate-800">AI Reactie Generator</p>
+          <p class="text-xs text-slate-400" id="modalReviewerName">—</p>
+        </div>
+      </div>
+      <button onclick="closeAiModal()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="px-6 py-5">
+      <div id="modalReviewSnippet" class="mb-4 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-500 italic leading-relaxed"></div>
+      <div id="aiLoadingState" class="flex items-center gap-3 py-6 justify-center">
+        <div class="spinner w-5 h-5 border-2 border-teal-200 border-t-teal-600 rounded-full"></div>
+        <p class="text-sm text-slate-400">AI genereert een reactie&hellip;</p>
+      </div>
+      <div id="aiResultState" class="hidden">
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Gegenereerde reactie</p>
+          <span class="text-[10px] text-teal-600 font-medium">Klik om te bewerken</span>
+        </div>
+        <div id="aiResponseBox" class="ai-response-box rounded-xl p-4 text-sm text-slate-700 leading-relaxed min-h-[100px] editable-response" contenteditable="false"></div>
+        <div class="mt-4">
+          <p class="text-xs font-medium text-slate-500 mb-2">Toon aanpassen</p>
+          <div id="toneButtons" class="flex gap-2 flex-wrap">
+            <button onclick="setTone('professioneel')" data-tone="professioneel" class="tone-btn active-tone px-3 py-1.5 text-xs rounded-lg border border-teal-500 text-teal-600 bg-teal-50 transition font-medium">Professioneel</button>
+            <button onclick="setTone('vriendelijk')" data-tone="vriendelijk" class="tone-btn px-3 py-1.5 text-xs rounded-lg border border-slate-200 hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50 transition font-medium text-slate-500">Vriendelijk</button>
+            <button onclick="setTone('formeel')" data-tone="formeel" class="tone-btn px-3 py-1.5 text-xs rounded-lg border border-slate-200 hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50 transition font-medium text-slate-500">Formeel</button>
+            <button onclick="setTone('empathisch')" data-tone="empathisch" class="tone-btn px-3 py-1.5 text-xs rounded-lg border border-slate-200 hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50 transition font-medium text-slate-500">Empathisch</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="aiModalFooter" class="hidden px-6 py-4 border-t border-slate-100 flex items-center justify-between gap-3">
+      <button onclick="copyResponse()" class="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-500 rounded-lg border border-slate-200 hover:bg-slate-50 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Kopiëren
+      </button>
+      <button onclick="acceptResponse()" class="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 active:scale-[.98] transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Accepteren &amp; Versturen
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ MANUAL REPLY MODAL ═══════ -->
+<div id="manualReplyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+  <div class="w-full max-w-lg bg-white rounded-2xl border border-slate-200 shadow-xl fade-in overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-lg bg-slate-600 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-slate-800">Reactie Schrijven</p>
+          <p class="text-xs text-slate-400" id="manualReviewerName">—</p>
+        </div>
+      </div>
+      <button onclick="closeManualReplyModal()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="px-6 py-5">
+      <div id="manualReviewSnippet" class="mb-4 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-500 italic leading-relaxed"></div>
+      <div class="mb-4">
+        <label class="block text-xs font-medium text-slate-500 mb-2">Uw reactie</label>
+        <textarea id="manualReplyText" placeholder="Schrijf hier uw reactie..." class="w-full px-4 py-3 text-sm text-slate-700 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400/40 focus:border-teal-400 resize-none" rows="6"></textarea>
+        <p class="text-[11px] text-slate-400 mt-1.5">Tip: Gebruik een warme, persoonlijke toon. Vermeld specifieke producten of ervaringen die de klant noemde.</p>
+      </div>
+    </div>
+    <div class="px-6 py-4 border-t border-slate-100 flex items-center justify-between gap-3">
+      <button onclick="closeManualReplyModal()" class="px-4 py-2 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition">Annuleren</button>
+      <button onclick="acceptManualReply()" class="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 active:scale-[.98] transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Plaatsen
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ DELETE CONFIRM MODAL ═══════ -->
+<div id="deleteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+  <div class="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-xl fade-in p-6 text-center">
+    <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    </div>
+    <h3 class="text-sm font-semibold text-slate-800 mb-1">Review verwijderen?</h3>
+    <p class="text-xs text-slate-500 mb-5">Deze actie kan niet ongedaan worden gemaakt.</p>
+    <div class="flex gap-3">
+      <button onclick="closeDeleteModal()" class="flex-1 py-2 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition">Annuleren</button>
+      <button onclick="confirmDelete()" class="flex-1 py-2 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition">Verwijderen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   STATE — alles leeft hier, persistent per sessie
+════════════════════════════════════════════ */
+const APP = {
+  isLiveMode: false,
+  currentPage: 'overview',
+  activeReviewId: null,
+  deleteTargetId: null,
+  currentTone: 'professioneel',
+  currentFilter: 'alle',
+  currentSearch: '',
+  currentPage_reviews: 1,
+  reviewsPerPage: 6,
+  reviews: [
+    { id:1,  name:'Marieke van den Berg',  date:'29 mei 2026',  rating:5, text:'Absoluut fantastisch! De macarons smolten op mijn tong en de eclairs waren een ware kunstwerk. SweetsNesz is mijn vaste adres geworden voor alle speciale gelegenheden. De bediening was bovendien uiterst vriendelijk en behulpzaam.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:2,  name:'Thomas Bakker',          date:'27 mei 2026',  rating:4, text:'Heerlijke taarten, de kwaliteit is hoog. Mijn enige kleine kanttekening: de wachtrij op zaterdagochtend is vrij lang. Maar het wachten is het absoluut waard! Zal zeker terugkomen.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:3,  name:'Sarah de Vries',          date:'24 mei 2026',  rating:2, text:'Helaas teleurgesteld bij mijn laatste bezoek. De bruidstaart die ik besteld had was niet op tijd klaar en de decoratie week af van wat was afgesproken. Ik hoop dat dit een eenmalige misstap was.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:4,  name:'Emma Janssen',            date:'22 mei 2026',  rating:5, text:'Wat een juweel! De croissants zijn versgekruld en de amandelspijs is heerlijk. Iedere zaterdag mijn vaste plek. Jullie maken mijn weekenden compleet.', status:'Beantwoord', platform:'Google', response:'Dank je wel voor je warme woorden, Emma! Wij zien je graag elke zaterdag. Jij maakt ons weekend ook compleet! — Team SweetsNesz', respondedAt:'23 mei 2026' },
+    { id:5,  name:'Pieter Smit',             date:'20 mei 2026',  rating:3, text:'Redelijk goed. De producten zijn lekker maar de prijzen vind ik aan de hoge kant vergeleken met vergelijkbare patisseries in de buurt. Ik kom er nog steeds, maar verwacht meer voor dit prijsniveau.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:6,  name:'Lotte Vermeer',           date:'18 mei 2026',  rating:5, text:'Ieder weekend rijd ik speciaal naar SweetsNesz voor hun verse stroopwafels en tompoucen. De koffie erbij is ook heerlijk. Een stukje Parijs in Nederland!', status:'Beantwoord', platform:'Google', response:'Wat lief, Lotte! Wij kijken ook altijd uit naar jouw bezoek op zaterdag. Tot de volgende keer! ☕ — Team SweetsNesz', respondedAt:'19 mei 2026' },
+    { id:7,  name:'Joost van der Laan',      date:'16 mei 2026',  rating:1, text:'Volledig verpeste verjaardag. Bestelling verkeerd, taart smaakte flets, personeel was onverschillig. Zou absoluut niet aanraden. Ik verwacht een reactie.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:8,  name:'Nora Willems',            date:'14 mei 2026',  rating:4, text:'Mooie patisserie met uitstekende producten. Vooral de millefeuille is verrukkelijk. Het is soms wat druk, maar de sfeer is gezellig en het personeel is vriendelijk.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:9,  name:'Bram Kuijpers',           date:'12 mei 2026',  rating:5, text:'Beste patisserie van de regio zonder twijfel. Al jaren klant en de kwaliteit is altijd consistent hoog. De seizoensgebonden gebakjes zijn een must-try. Echt een aanrader!', status:'Beantwoord', platform:'Google', response:'Dank je, Bram! Trouwe klanten als jij zijn het kloppend hart van SweetsNesz. We hopen je snel weer te verwelkomen! — Team SweetsNesz', respondedAt:'13 mei 2026' },
+    { id:10, name:'Fleur Hendriks',          date:'10 mei 2026',  rating:3, text:'Lekker gebak, maar de openingstijden kloppen niet altijd met wat er online staat. Twee keer voor niets gereden. Kunnen jullie dat updaten?', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:11, name:'Mark Dijkstra',           date:'8 mei 2026',   rating:5, text:'Spectaculaire bruidstaart gemaakt voor ons huwelijk. Elk detail klopte, de smaak was hemels en de reacties van gasten waren overweldigend positief. Een onvergetelijke bijdrage aan onze grote dag.', status:'Beantwoord', platform:'Google', response:'Gefeliciteerd nogmaals, Mark! Het was een eer om jullie bruidstaart te mogen verzorgen. Wij wensen jullie een prachtig leven samen! — Team SweetsNesz', respondedAt:'9 mei 2026' },
+    { id:12, name:'Iris Bosman',             date:'5 mei 2026',   rating:4, text:'Verrukkelijke bonbons als cadeau gekocht, perfect verpakt. Ontvanger was er heel blij mee. Ik ben zelf ook fan geworden van de pistache pralines. Een echte aanrader als cadeau!', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:13, name:'Daan Mulder',             date:'2 mei 2026',   rating:2, text:'Te veel suiker in bijna alles. Voor mensen die niet van superzoetig houden is het teleurstellend. De presentatie is prachtig maar de smaakbalans mist voor mij.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:14, name:'Sophie de Graaf',         date:'29 apr 2026',  rating:5, text:'Elke keer opnieuw verbaasd over de creativiteit en kwaliteit. De seizoenstaartenkaart is verrassend en innovatief. Jullie tillen patisserie naar een ander niveau. Veel succes met de zaak!', status:'Beantwoord', platform:'Google', response:'Dank je wel voor je lieve woorden, Sophie! Creativiteit is onze drijfveer. We hopen je snel terug te zien! — Team SweetsNesz', respondedAt:'30 apr 2026' },
+    { id:15, name:'Ruben Koops',             date:'26 apr 2026',  rating:3, text:'Goed gebak, maar niets bijzonders. Verwacht iets unieks voor de prijs die je betaalt. De sfeer in de winkel is wel aangenaam en het personeel vriendelijk.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:16, name:'Anna Koster',             date:'22 apr 2026',  rating:5, text:'Elk jaar laat ik hier de verjaardagstaart van mijn kinderen maken en elk jaar worden we opnieuw verrast. De taarten zijn niet alleen lekker maar ook prachtig. Echte kunstwerken!', status:'Beantwoord', platform:'Google', response:'Wat een mooie traditie, Anna! Wij zijn elk jaar verheugd jullie te mogen verwelkomen. Op naar het volgende feestje! 🎂 — Team SweetsNesz', respondedAt:'23 apr 2026' },
+    { id:17, name:'Kevin Prins',             date:'18 apr 2026',  rating:1, text:'Allergieën niet serieus genomen. Ik had duidelijk noten-allergie aangegeven maar mijn gebakje bevatte toch noten. Gevaarlijk! Ga hierop aangesproken worden.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:18, name:'Manon Bers',              date:'14 apr 2026',  rating:4, text:'Geweldige plek voor een tussendoortje of om iets lekkers mee te nemen. De croissants zijn heerlijk bottig en de koffie is uitstekend. Beetje krap qua zitplaatsen.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:19, name:'Lars Visser',             date:'10 apr 2026',  rating:5, text:'Bijzondere sfeer en nog bijzonderder gebak. Het personeel weet alles van hun producten en adviseert met passie. De citroentaart is een religieuze ervaring. Absoluut aanraden.', status:'Beantwoord', platform:'Google', response:'Wat een prachtige omschrijving, Lars! De citroentaart is inderdaad een favoriet van ons team. Tot de volgende keer! — Team SweetsNesz', respondedAt:'11 apr 2026' },
+    { id:20, name:'Tessa Brouwer',           date:'6 apr 2026',   rating:2, text:'Bestelling was een uur te laat. Het personeel was niet behulpzaam toen ik hierover belde. Voor een brunchbestelling voor 20 personen was dit erg onprofessioneel.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:21, name:'Cas Oosterhout',          date:'2 apr 2026',   rating:5, text:'Simpelweg de beste patisserie waar ik ooit geweest ben. Elk gebakje is een feestje. De chocoladetaart die ik gisteren heb gekocht was een openbaring. Dank jullie wel!', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:22, name:'Femke Willems',           date:'29 mrt 2026',  rating:4, text:'Fijn dat er ook glutenvrije opties zijn! Die zijn net zo lekker als de gewone gebakjes. Eindelijk een patisserie die ook aan ons denkt. Heel erg bedankt.', status:'Beantwoord', platform:'Google', response:'Dank je, Femke! Inclusiviteit is voor ons vanzelfsprekend. Iedereen verdient lekker gebak! — Team SweetsNesz', respondedAt:'30 mrt 2026' },
+    { id:23, name:'Sander de Jong',          date:'25 mrt 2026',  rating:3, text:'Producten zijn goed, maar de winkel is soms erg druk waardoor je lang moet wachten. Extra personeel inzetten tijdens piekmomenten zou fijn zijn.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+    { id:24, name:'Hilde Bakker',            date:'20 mrt 2026',  rating:5, text:'Na een aanbeveling van een vriendin eindelijk een keer geweest. En wat was dat een goede aanbeveling! Alles wat ik proefde was fenomenaal. Ik ga hier zeker vaker komen.', status:'Nieuw', platform:'Google', response:null, respondedAt:null },
+  ]
+};
+
+/* ════════════════════════════════════════════
+   AI RESPONSE TEMPLATES
+════════════════════════════════════════════ */
+const AI = {
+  professioneel: {
+    5: n=>`Beste ${n},\n\nHartelijk dank voor uw uitstekende beoordeling. Het is ons team een eer en genoegen om u met onze producten te mogen verwennen. Uw positieve feedback motiveert ons om de lat elke dag weer hoog te leggen. Wij hopen u spoedig weer te mogen verwelkomen.\n\nMet vriendelijke groet,\nTeam SweetsNesz`,
+    4: n=>`Beste ${n},\n\nBedankt voor uw vriendelijke beoordeling en uw waardevolle opmerkingen. Wij nemen uw feedback serieus en zullen er alles aan doen om uw volgende bezoek nog aangenamer te maken. Uw loyaliteit stellen wij zeer op prijs.\n\nMet vriendelijke groet,\nTeam SweetsNesz`,
+    3: n=>`Beste ${n},\n\nBedankt voor uw eerlijke beoordeling. Wij waarderen het dat u de moeite neemt ons te informeren over uw ervaringen. Uw feedback helpt ons onze service en producten continu te verbeteren. Wij hopen u binnenkort opnieuw te mogen verwelkomen.\n\nMet vriendelijke groet,\nTeam SweetsNesz`,
+    2: n=>`Beste ${n},\n\nWij betreuren het oprecht te horen dat uw bezoek niet aan uw verwachtingen heeft voldaan. Dit is beslist niet de standaard die wij nastreven. Wij verzoeken u vriendelijk contact met ons op te nemen zodat wij uw situatie persoonlijk kunnen bespreken en een passende oplossing kunnen bieden.\n\nMet vriendelijke groet,\nTeam SweetsNesz`,
+    1: n=>`Beste ${n},\n\nWij zijn ernstig ontstemd over uw beschreven ervaring en bieden u onze oprechte excuses aan. Dit had absoluut niet mogen plaatsvinden. Wij verzoeken u dringend contact met ons op te nemen via info@sweetsnesz.nl zodat wij dit direct kunnen adresseren.\n\nMet vriendelijke groet,\nTeam SweetsNesz`,
+  },
+  vriendelijk: {
+    5: n=>`Hoi ${n}! 🎉\n\nWat geweldig om te lezen! Dankjewel voor je fantastische woorden — dit maakt ons hele team zo blij! Jij weet precies waarom we elke dag met plezier naar de winkel gaan. We zien je snel weer!\n\nGroetjes, Team SweetsNesz 🧁`,
+    4: n=>`Hoi ${n}!\n\nDankjewel voor je fijne review en je nuttige feedback! We doen altijd ons best om het voor iedereen zo prettig mogelijk te maken. Tot snel!\n\nGroetjes, Team SweetsNesz`,
+    3: n=>`Hoi ${n},\n\nBedankt voor je eerlijke feedback! We horen graag wat we beter kunnen doen. We hopen je snel terug te zien en je positief te verrassen!\n\nGroetjes, Team SweetsNesz`,
+    2: n=>`Hoi ${n},\n\nAi, wat vervelend om te lezen! Onze excuses voor de teleurstellende ervaring. Dit is echt niet hoe het hoort. Mogen we je uitnodigen om contact met ons op te nemen? We lossen het graag op!\n\nGroetjes, Team SweetsNesz`,
+    1: n=>`Hoi ${n},\n\nDit spijt ons enorm! We zijn geschrokken van je ervaring en willen dit echt persoonlijk goed maken. Stuur ons alsjeblieft een berichtje!\n\nGroetjes, Team SweetsNesz`,
+  },
+  formeel: {
+    5: n=>`Geachte ${n},\n\nWij danken u hartelijk voor uw uitmuntende beoordeling van onze patisserie. Het is ons streven bij elke gelegenheid producten van de allerhoogste kwaliteit aan te bieden, en uw waardering bevestigt dat wij op de juiste koers zitten. Wij verzoeken u vriendelijk ons ook in de toekomst met uw bezoek te vereren.\n\nHoogachtend,\nSweetsNesz Patisserie`,
+    4: n=>`Geachte ${n},\n\nWij danken u voor uw positieve beoordeling en uw waardevolle kanttekeningen. Uw feedback zal worden meegenomen in onze voortdurende streven naar verbetering. Wij stellen uw loyaliteit zeer op prijs.\n\nHoogachtend,\nSweetsNesz Patisserie`,
+    3: n=>`Geachte ${n},\n\nWij zijn u erkentelijk voor uw beoordeling. Uw opmerkingen worden door ons ter harte genomen in het kader van onze kwaliteitsverbetering. Wij hopen u binnenkort opnieuw te mogen verwelkomen.\n\nHoogachtend,\nSweetsNesz Patisserie`,
+    2: n=>`Geachte ${n},\n\nWij betreuren het ten zeerste kennis te hebben genomen van uw negatieve ervaringen. Wij bieden u onze oprechte excuses aan en verzoeken u contact op te nemen teneinde een passende oplossing te bewerkstelligen.\n\nHoogachtend,\nSweetsNesz Patisserie`,
+    1: n=>`Geachte ${n},\n\nWij zijn ernstig teleurgesteld in de situatie die u heeft beschreven en bieden u onze oprechte verontschuldigingen aan. Wij verzoeken u dringend contact op te nemen.\n\nHoogachtend,\nSweetsNesz Patisserie`,
+  },
+  empathisch: {
+    5: n=>`Lieve ${n},\n\nJouw woorden raken ons echt. Het is precies waarom wij elke ochtend vroeg opstaan en met hart en ziel aan het werk gaan — om jou en anderen zulke momenten te kunnen geven. Dankjewel, oprecht.\n\nMet veel liefs,\nTeam SweetsNesz 🌸`,
+    4: n=>`Lieve ${n},\n\nDankjewel voor je mooie en eerlijke woorden. We horen ook je verbeterpunt en nemen dat serieus. Iedereen verdient een perfecte ervaring bij ons. We hopen je snel terug te zien!\n\nMet warme groet,\nTeam SweetsNesz`,
+    3: n=>`Lieve ${n},\n\nWe begrijpen je gevoel en waarderen het dat je dit deelt. Jij helpt ons groeien. We zouden graag de kans krijgen je positief te verrassen bij een volgend bezoek.\n\nMet warme groet,\nTeam SweetsNesz`,
+    2: n=>`Lieve ${n},\n\nWe voelen oprecht mee met je teleurstelling. Dit had niet mogen gebeuren en we vinden het heel vervelend. We willen graag persoonlijk contact opnemen om dit recht te zetten. Jij verdient beter.\n\nMet oprechte excuses,\nTeam SweetsNesz`,
+    1: n=>`Lieve ${n},\n\nWe begrijpen je boosheid en die is volledig terecht. Dit is niet wie wij zijn. We staan klaar om het goed te maken en hopen dat je ons die kans wilt geven.\n\nMet oprechte excuses,\nTeam SweetsNesz`,
+  }
+};
+
+/* ════════════════════════════════════════════
+   LOGIN / LOGOUT
+════════════════════════════════════════════ */
+function handleLogin() {
+  const u = document.getElementById('username').value.trim();
+  const errDiv = document.getElementById('loginError');
+  const errTxt = document.getElementById('loginErrorText');
+  if (u.toLowerCase() !== 'sweetsnesz') {
+    errTxt.textContent = u === '' ? 'Vul een gebruikersnaam in.' : `"${u}" is niet herkend.`;
+    errDiv.classList.remove('hidden');
+    document.getElementById('username').classList.add('border-red-300','bg-red-50');
+    return;
+  }
+  errDiv.classList.add('hidden');
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+  document.getElementById('dashboard').classList.add('flex');
+  updateBadgeCount();
+  renderPage('overview');
+}
+function handleLogout(){
+  if(!confirm('Wil je uitloggen?'))return;
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('username').value='';
+  document.getElementById('password').value='';
+}
+document.getElementById('password').addEventListener('keydown',e=>{if(e.key==='Enter')handleLogin()});
+document.getElementById('username').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('password').focus()});
+document.getElementById('username').addEventListener('input',()=>{
+  document.getElementById('username').classList.remove('border-red-300','bg-red-50');
+  document.getElementById('loginError').classList.add('hidden');
+});
+
+/* ════════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════════ */
+const PAGE_META = {
+  overview:  { title:'Overzicht',          sub:'Welkom terug, SweetsNesz' },
+  reviews:   { title:'Klantinteracties',   sub:'Beheer en beantwoord alle reviews' },
+  analytics: { title:'Analyses',           sub:'Inzicht in reviewprestaties' },
+  settings:  { title:'Instellingen',       sub:'Configureer uw integraties en voorkeuren' },
+};
+function switchPage(page){
+  APP.currentPage = page;
+  APP.currentPage_reviews = 1;
+  ['overview','reviews','analytics','settings'].forEach(p=>{
+    const btn = document.getElementById(`nav-${p}`);
+    if(!btn)return;
+    const icon = btn.querySelector('.nav-icon');
+    if(p===page){
+      btn.className='sidebar-link nav-active w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left';
+      if(icon){icon.classList.add('text-teal-600');icon.classList.remove('text-slate-400');}
+      btn.setAttribute('aria-current','page');
+    } else {
+      btn.className='sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-500 hover:bg-slate-50 hover:text-slate-700';
+      if(icon){icon.classList.remove('text-teal-600');icon.classList.add('text-slate-400');}
+      btn.removeAttribute('aria-current');
+    }
+  });
+  document.getElementById('pageTitle').textContent = PAGE_META[page].title;
+  document.getElementById('pageSubtitle').textContent = PAGE_META[page].sub;
+  renderPage(page);
+}
+function renderPage(page){
+  const main = document.getElementById('mainContent');
+  main.innerHTML='';
+  if(page==='overview')  renderOverview(main);
+  if(page==='reviews')   renderReviews(main);
+  if(page==='analytics') renderAnalytics(main);
+  if(page==='settings')  renderSettings(main);
+}
+function updateBadgeCount(){
+  const n = APP.reviews.filter(r=>r.status==='Nieuw').length;
+  const badge = document.getElementById('newBadge');
+  if(badge) badge.textContent = n;
+}
+
+/* ════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════ */
+function stars(rating, size='normal'){
+  const sz = size==='small' ? 'w-3 h-3' : 'w-3.5 h-3.5';
+  return Array.from({length:5},(_,i)=>`
+    <svg xmlns="http://www.w3.org/2000/svg" class="${sz} ${i<rating?'text-amber-400':'text-slate-200'}" viewBox="0 0 24 24" fill="currentColor">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>`).join('');
+}
+function ratingBg(r){ return r>=4?'bg-teal-400':r===3?'bg-amber-400':'bg-red-400'; }
+function ratingTxt(r){ return r>=4?'text-teal-600':r===3?'text-amber-500':'text-red-500'; }
+function avatar(name){
+  const colors=['bg-teal-600','bg-blue-500','bg-purple-500','bg-rose-500','bg-amber-500','bg-indigo-500'];
+  const idx = name.charCodeAt(0)%colors.length;
+  return `<div class="w-10 h-10 rounded-full ${colors[idx]} flex items-center justify-center text-sm font-bold text-white flex-shrink-0">${name.charAt(0)}</div>`;
+}
+function getFilteredReviews(){
+  let list = [...APP.reviews];
+  if(APP.currentFilter==='nieuw')      list=list.filter(r=>r.status==='Nieuw');
+  if(APP.currentFilter==='beantwoord') list=list.filter(r=>r.status==='Beantwoord');
+  if(APP.currentFilter==='kritisch')   list=list.filter(r=>r.rating<=2);
+  if(APP.currentSearch){
+    const q=APP.currentSearch.toLowerCase();
+    list=list.filter(r=>r.name.toLowerCase().includes(q)||r.text.toLowerCase().includes(q));
+  }
+  return list;
+}
+
+/* ════════════════════════════════════════════
+   OVERVIEW PAGE
+════════════════════════════════════════════ */
+function renderOverview(c){
+  const total = APP.reviews.length;
+  const answered = APP.reviews.filter(r=>r.status==='Beantwoord').length;
+  const newCount = APP.reviews.filter(r=>r.status==='Nieuw').length;
+  const critical = APP.reviews.filter(r=>r.rating<=2).length;
+  const avg = (APP.reviews.reduce((s,r)=>s+r.rating,0)/total).toFixed(1);
+  const pct = Math.round((answered/total)*100);
+
+  c.innerHTML=`
+  <div class="fade-in rounded-xl border px-5 py-3.5 flex items-center justify-between gap-4 ${APP.isLiveMode?'bg-teal-50 border-teal-200':'bg-amber-50 border-amber-200'}">
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full ${APP.isLiveMode?'bg-teal-500':'bg-amber-500'}"></span>
+      <span class="text-xs font-medium ${APP.isLiveMode?'text-teal-700':'text-amber-700'}">${APP.isLiveMode?'Live gekoppeld met Google Business — data wordt gesynchroniseerd':'Demo modus actief — koppel een Google API key om live data te laden'}</span>
+    </div>
+    <button onclick="switchPage('settings')" class="text-xs font-medium px-3 py-1.5 rounded-lg border transition ${APP.isLiveMode?'border-teal-300 text-teal-700 hover:bg-teal-100':'border-amber-300 text-amber-700 hover:bg-amber-100'}">${APP.isLiveMode?'Instellingen':'Nu koppelen →'}</button>
+  </div>
+
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="fade-in bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Totaal reviews</p>
+      <p class="text-3xl font-semibold text-slate-800">${total}</p>
+      <p class="text-xs text-slate-400 mt-1">Google Business</p>
+    </div>
+    <div class="fade-in-d1 bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Nieuw</p>
+      <p class="text-3xl font-semibold text-blue-600">${newCount}</p>
+      <p class="text-xs text-slate-400 mt-1">Wachten op reactie</p>
+    </div>
+    <div class="fade-in-d2 bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Gem. score</p>
+      <p class="text-3xl font-semibold text-amber-500">${avg}</p>
+      <div class="flex gap-0.5 mt-1">${stars(Math.round(parseFloat(avg)),'small')}</div>
+    </div>
+    <div class="fade-in-d3 bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Kritisch</p>
+      <p class="text-3xl font-semibold text-red-500">${critical}</p>
+      <p class="text-xs text-slate-400 mt-1">1–2 ster reviews</p>
+    </div>
+  </div>
+
+  <div class="fade-in-d2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold text-slate-700">Reactie ratio</h2>
+      <span class="text-sm font-bold text-teal-600">${pct}%</span>
+    </div>
+    <div class="h-3 bg-slate-100 rounded-full overflow-hidden">
+      <div class="h-full bg-gradient-to-r from-teal-400 to-teal-500 rounded-full transition-all duration-700" style="width:${pct}%"></div>
+    </div>
+    <div class="flex justify-between mt-2 text-xs text-slate-400"><span>${answered} beantwoord</span><span>${newCount} open</span></div>
+  </div>
+
+  <div class="fade-in-d3">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold text-slate-700">Recente reviews</h2>
+      <button onclick="switchPage('reviews')" class="text-xs text-teal-600 hover:text-teal-700 font-medium">Alle reviews →</button>
+    </div>
+    <div class="space-y-3">
+      ${APP.reviews.slice(0,5).map(r=>`
+        <div onclick="switchPage('reviews')" class="review-card flex items-start gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-sm cursor-pointer">
+          ${avatar(r.name)}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="text-sm font-medium text-slate-800">${r.name}</span>
+              <div class="flex gap-0.5">${stars(r.rating,'small')}</div>
+            </div>
+            <p class="text-xs text-slate-500 truncate">${r.text}</p>
+          </div>
+          <span class="flex-shrink-0 chip ${r.status==='Nieuw'?'bg-blue-50 text-blue-600 border border-blue-100':'bg-slate-100 text-slate-400 border border-slate-200'}">${r.status}</span>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="fade-in-d4 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h2 class="text-sm font-semibold text-slate-700 mb-4">Verdeling per score</h2>
+    ${[5,4,3,2,1].map(n=>{
+      const cnt = APP.reviews.filter(r=>r.rating===n).length;
+      const pctBar = Math.round((cnt/total)*100);
+      return `<div class="flex items-center gap-3 mb-2">
+        <div class="flex gap-0.5 flex-shrink-0">${stars(n,'small')}</div>
+        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div class="h-full rounded-full ${n>=4?'bg-teal-400':n===3?'bg-amber-400':'bg-red-400'}" style="width:${pctBar}%"></div>
+        </div>
+        <span class="text-xs text-slate-400 w-6 text-right">${cnt}</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/* ════════════════════════════════════════════
+   REVIEWS PAGE
+════════════════════════════════════════════ */
+function renderReviews(c){
+  if(APP.isLiveMode){
+    c.innerHTML=`<div class="fade-in flex flex-col items-center justify-center py-24 text-center">
+      <div class="w-14 h-14 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-teal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h2 class="text-base font-semibold text-slate-700 mb-1">Verbonden met Google API</h2>
+      <p class="text-sm text-slate-400 max-w-xs">Wachten op live reviews van uw Google Business profiel.</p>
+      <div class="mt-6 flex items-center gap-2 text-xs text-teal-600">
+        <div class="spinner w-3.5 h-3.5 border-2 border-teal-200 border-t-teal-500 rounded-full"></div> Live data synchroniseren…
+      </div>
+    </div>`;
+    return;
+  }
+
+  const filtered = getFilteredReviews();
+  const total = APP.reviews.length;
+  const newCnt = APP.reviews.filter(r=>r.status==='Nieuw').length;
+  const ansCnt = APP.reviews.filter(r=>r.status==='Beantwoord').length;
+  const critCnt = APP.reviews.filter(r=>r.rating<=2).length;
+
+  const totalPages = Math.ceil(filtered.length / APP.reviewsPerPage);
+  const page = Math.min(APP.currentPage_reviews, Math.max(1, totalPages));
+  APP.currentPage_reviews = page;
+  const start = (page-1)*APP.reviewsPerPage;
+  const pageReviews = filtered.slice(start, start+APP.reviewsPerPage);
+
+  c.innerHTML=`
+  <!-- Filter + Search bar -->
+  <div class="fade-in bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 flex items-center justify-between gap-3 flex-wrap sticky top-0 z-10">
+    <div class="flex items-center gap-2 flex-wrap">
+      <button onclick="setFilter('alle')" id="fb-alle" class="filter-btn px-3 py-1.5 text-xs font-medium rounded-lg ${APP.currentFilter==='alle'?'bg-slate-800 text-white':'border border-slate-200 text-slate-500 hover:bg-slate-50'} transition">Alle (${total})</button>
+      <button onclick="setFilter('nieuw')" id="fb-nieuw" class="filter-btn px-3 py-1.5 text-xs font-medium rounded-lg ${APP.currentFilter==='nieuw'?'bg-slate-800 text-white':'border border-slate-200 text-slate-500 hover:bg-slate-50'} transition">Nieuw (${newCnt})</button>
+      <button onclick="setFilter('beantwoord')" id="fb-beantwoord" class="filter-btn px-3 py-1.5 text-xs font-medium rounded-lg ${APP.currentFilter==='beantwoord'?'bg-slate-800 text-white':'border border-slate-200 text-slate-500 hover:bg-slate-50'} transition">Beantwoord (${ansCnt})</button>
+      <button onclick="setFilter('kritisch')" id="fb-kritisch" class="filter-btn px-3 py-1.5 text-xs font-medium rounded-lg ${APP.currentFilter==='kritisch'?'bg-red-500 text-white':'border border-red-100 text-red-400 hover:bg-red-50'} transition">Kritisch (${critCnt})</button>
+    </div>
+    <div class="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-1.5">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" value="${APP.currentSearch}" onkeyup="doSearch(this.value)" placeholder="Zoek naam of tekst…" class="text-xs text-slate-600 placeholder:text-slate-300 outline-none bg-transparent w-40"/>
+      ${APP.currentSearch?`<button onclick="clearSearch()" class="text-slate-300 hover:text-slate-500">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>`:''}
+    </div>
+  </div>
+
+  <!-- Results info -->
+  <div class="text-xs text-slate-400 fade-in">${filtered.length} review${filtered.length!==1?'s':''} gevonden • Pagina ${page} van ${Math.max(1,totalPages)}</div>
+
+  <!-- Review cards -->
+  <div id="reviewsGrid" class="space-y-4">
+    ${pageReviews.length ? pageReviews.map((r,i)=>buildReviewCard(r,i)).join('') : '<div class="py-16 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-200">Geen reviews gevonden.</div>'}
+  </div>
+
+  <!-- Pagination -->
+  ${totalPages>1?`
+  <div class="fade-in flex items-center justify-center gap-2 pt-2 pb-4">
+    <button onclick="goPage(${page-1})" ${page===1?'disabled':''} class="page-btn px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition">← Vorige</button>
+    ${Array.from({length:totalPages},(_,i)=>`
+      <button onclick="goPage(${i+1})" class="page-btn w-8 h-8 text-xs font-medium rounded-lg transition ${i+1===page?'bg-teal-600 text-white':'border border-slate-200 text-slate-500 hover:bg-slate-50'}">${i+1}</button>`).join('')}
+    <button onclick="goPage(${page+1})" ${page===totalPages?'disabled':''} class="page-btn px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition">Volgende →</button>
+  </div>`:''}
+
+  <p class="text-center text-xs text-slate-300 pb-4">— Demo data • ${APP.reviews.length} reviews —</p>`;
+}
+
+function buildReviewCard(review, index){
+  const isNew = review.status==='Nieuw';
+  const delay = ['fade-in','fade-in-d1','fade-in-d2','fade-in-d3','fade-in-d4','fade-in-d4'][Math.min(index,5)];
+  return `
+  <div id="reviewCard-${review.id}" class="review-card ${delay} bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <!-- Card header -->
+    <div class="px-6 pt-5 pb-4">
+      <div class="flex items-start justify-between gap-4 mb-3">
+        <div class="flex items-center gap-3">
+          ${avatar(review.name)}
+          <div>
+            <p class="text-sm font-semibold text-slate-800">${review.name}</p>
+            <div class="flex items-center gap-2 mt-0.5">
+              <div class="flex gap-0.5">${stars(review.rating)}</div>
+              <span class="text-xs text-slate-400">${review.date}</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <span class="chip bg-slate-50 text-slate-400 border border-slate-200 text-[10px]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
+            Google
+          </span>
+          <span class="chip ${isNew?'bg-blue-50 text-blue-600 border border-blue-100':'bg-slate-100 text-slate-400 border border-slate-200'}">${review.status}</span>
+          ${!isNew && review.respondedAt ? `<span class="text-[10px] text-slate-400">${review.respondedAt}</span>` : ''}
+        </div>
+      </div>
+
+      <!-- Rating bar -->
+      <div class="flex items-center gap-2 mb-3">
+        <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div class="h-full rounded-full ${ratingBg(review.rating)}" style="width:${review.rating*20}%"></div>
+        </div>
+        <span class="text-xs font-bold ${ratingTxt(review.rating)} w-6 text-right">${review.rating}.0</span>
+      </div>
+
+      <!-- Review text -->
+      <p class="text-sm text-slate-600 leading-relaxed">${review.text}</p>
+    </div>
+
+    <!-- Response section — only shown if answered -->
+    ${review.response ? `
+    <div id="responseSection-${review.id}" class="mx-6 mb-4 rounded-xl bg-teal-50 border border-teal-100 overflow-hidden">
+      <div class="px-4 py-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-5 h-5 rounded-full bg-teal-600 flex items-center justify-center flex-shrink-0">
+              <span class="text-white text-[9px] font-bold">SN</span>
+            </div>
+            <p class="text-xs font-semibold text-teal-700">SweetsNesz • Uw reactie</p>
+          </div>
+          <div class="flex items-center gap-1">
+            <button onclick="startEditResponse(${review.id})" class="inline-edit-btn p-1 rounded hover:bg-teal-100 text-teal-500 transition" title="Bewerken">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button onclick="copyReviewResponse(${review.id})" class="inline-edit-btn p-1 rounded hover:bg-teal-100 text-teal-500 transition" title="Kopiëren">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="responseText-${review.id}" class="text-xs text-teal-800 leading-relaxed whitespace-pre-line">${review.response}</div>
+        <!-- Edit mode -->
+        <div id="editMode-${review.id}" class="hidden mt-2">
+          <textarea id="editTextarea-${review.id}" class="w-full text-xs text-slate-700 bg-white border border-teal-200 rounded-lg p-2.5 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-teal-400/40" rows="5">${review.response}</textarea>
+          <div class="flex items-center gap-2 mt-2">
+            <button onclick="saveEditResponse(${review.id})" class="px-3 py-1.5 text-xs font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition">Opslaan</button>
+            <button onclick="cancelEditResponse(${review.id})" class="px-3 py-1.5 text-xs font-medium text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 transition">Annuleren</button>
+          </div>
+        </div>
+      </div>
+    </div>` : ''}
+
+    <!-- Card footer actions -->
+    <div class="px-6 pb-5 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-1">
+        <button onclick="deleteReview(${review.id})" class="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-400 transition" title="Verwijderen">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        </button>
+        ${review.rating<=2 ? `<span class="chip bg-red-50 text-red-500 border border-red-100 ml-1">⚠ Aandacht vereist</span>` : ''}
+      </div>
+      <div class="flex items-center gap-2">
+        ${isNew
+          ? `<button onclick="openAiModal(${review.id})" class="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 active:scale-[.98] transition shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Genereer AI
+             </button>`
+          : `<button onclick="openAiModal(${review.id})" class="flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              AI
+             </button>`
+        }
+        <button onclick="openManualReplyModal(${review.id})" class="flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Handmatig
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════════
+   FILTER / SEARCH / PAGINATION
+════════════════════════════════════════════ */
+function setFilter(f){
+  APP.currentFilter=f;
+  APP.currentPage_reviews=1;
+  renderPage('reviews');
+}
+function doSearch(v){
+  APP.currentSearch=v;
+  APP.currentPage_reviews=1;
+  renderPage('reviews');
+}
+function clearSearch(){
+  APP.currentSearch='';
+  APP.currentPage_reviews=1;
+  renderPage('reviews');
+}
+function goPage(p){
+  APP.currentPage_reviews=p;
+  renderPage('reviews');
+  document.getElementById('mainContent').scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ════════════════════════════════════════════
+   INLINE EDIT RESPONSE
+════════════════════════════════════════════ */
+function startEditResponse(id){
+  document.getElementById(`responseText-${id}`).classList.add('hidden');
+  document.getElementById(`editMode-${id}`).classList.remove('hidden');
+  document.getElementById(`editTextarea-${id}`).focus();
+}
+function cancelEditResponse(id){
+  document.getElementById(`responseText-${id}`).classList.remove('hidden');
+  document.getElementById(`editMode-${id}`).classList.add('hidden');
+}
+function saveEditResponse(id){
+  const review = APP.reviews.find(r=>r.id===id);
+  if(!review) return;
+  const newText = document.getElementById(`editTextarea-${id}`).value.trim();
+  if(!newText){ showToast('Reactie mag niet leeg zijn.','error'); return; }
+  review.response = newText;
+  document.getElementById(`responseText-${id}`).textContent = newText;
+  cancelEditResponse(id);
+  showToast('Reactie bijgewerkt!');
+}
+function copyReviewResponse(id){
+  const review = APP.reviews.find(r=>r.id===id);
+  if(!review||!review.response) return;
+  navigator.clipboard.writeText(review.response).catch(()=>{});
+  showToast('Reactie gekopieerd!');
+}
+
+/* ════════════════════════════════════════════
+   MANUAL REPLY MODAL
+════════════════════════════════════════════ */
+function openManualReplyModal(id){
+  APP.activeReviewId=id;
+  const review=APP.reviews.find(r=>r.id===id);
+  if(!review) return;
+  document.getElementById('manualReviewerName').textContent=`Antwoord op review van ${review.name}`;
+  document.getElementById('manualReviewSnippet').textContent=`"${review.text.substring(0,150)}${review.text.length>150?'…':''}"`;
+  document.getElementById('manualReplyText').value='';
+  document.getElementById('manualReplyModal').classList.remove('hidden');
+  document.getElementById('manualReplyText').focus();
+}
+function closeManualReplyModal(){
+  document.getElementById('manualReplyModal').classList.add('hidden');
+  APP.activeReviewId=null;
+}
+function acceptManualReply(){
+  const text=document.getElementById('manualReplyText').value.trim();
+  if(!text){ showToast('Reactie mag niet leeg zijn.','error'); return; }
+  const review=APP.reviews.find(r=>r.id===APP.activeReviewId);
+  if(!review) return;
+  review.status='Beantwoord';
+  review.response=text;
+  review.respondedAt=new Date().toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'});
+  closeManualReplyModal();
+  updateBadgeCount();
+  showToast('Reactie geplaatst!');
+  const card=document.getElementById(`reviewCard-${review.id}`);
+  if(card){
+    const tmp=document.createElement('div');
+    tmp.innerHTML=buildReviewCard(review,0);
+    card.replaceWith(tmp.firstElementChild);
+  } else if(APP.currentPage==='overview'){
+    renderPage('overview');
+  }
+  if(APP.currentPage==='reviews') renderPage('reviews');
+}
+document.getElementById('manualReplyModal').addEventListener('click',function(e){ if(e.target===this) closeManualReplyModal(); });
+
+/* ════════════════════════════════════════════
+   DELETE REVIEW
+════════════════════════════════════════════ */
+function deleteReview(id){
+  APP.deleteTargetId=id;
+  document.getElementById('deleteModal').classList.remove('hidden');
+}
+function closeDeleteModal(){
+  document.getElementById('deleteModal').classList.add('hidden');
+  APP.deleteTargetId=null;
+}
+function confirmDelete(){
+  if(!APP.deleteTargetId) return;
+  APP.reviews = APP.reviews.filter(r=>r.id!==APP.deleteTargetId);
+  closeDeleteModal();
+  updateBadgeCount();
+  renderPage('reviews');
+  showToast('Review verwijderd.');
+}
+
+/* ════════════════════════════════════════════
+   ANALYTICS PAGE
+════════════════════════════════════════════ */
+function renderAnalytics(c){
+  const months=['jan','feb','mrt','apr','mei'];
+  const monthData=[
+    {m:'jan',total:3,avg:4.0,new:1},{m:'feb',total:4,avg:3.7,new:2},{m:'mrt',total:5,avg:4.2,new:2},
+    {m:'apr',total:7,avg:4.0,new:3},{m:'mei',total:APP.reviews.filter(r=>r.date.includes('mei')).length,avg:3.8,new:APP.reviews.filter(r=>r.date.includes('mei')&&r.status==='Nieuw').length}
+  ];
+  const maxTotal=Math.max(...monthData.map(d=>d.total));
+
+  c.innerHTML=`
+  <div class="fade-in grid grid-cols-3 gap-4">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Beste maand</p>
+      <p class="text-2xl font-semibold text-slate-800">Mei 2026</p>
+      <p class="text-xs text-teal-600 mt-1">↑ 42% t.o.v. april</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Reactietijd gem.</p>
+      <p class="text-2xl font-semibold text-slate-800">4.2 uur</p>
+      <p class="text-xs text-slate-400 mt-1">Doelstelling: &lt;6 uur</p>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">NPS Score</p>
+      <p class="text-2xl font-semibold text-teal-600">+62</p>
+      <p class="text-xs text-slate-400 mt-1">Uitstekend</p>
+    </div>
+  </div>
+
+  <div class="fade-in-d1 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h2 class="text-sm font-semibold text-slate-700 mb-5">Reviews per maand</h2>
+    <div class="flex items-end gap-4 h-32">
+      ${monthData.map(d=>`
+        <div class="flex-1 flex flex-col items-center gap-1.5">
+          <span class="text-[10px] text-slate-400">${d.total}</span>
+          <div class="w-full rounded-t-md bg-teal-400 hover:bg-teal-500 transition cursor-default" style="height:${Math.round((d.total/maxTotal)*90)}px"></div>
+          <span class="text-[10px] text-slate-400 font-medium">${d.m}</span>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="fade-in-d2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h2 class="text-sm font-semibold text-slate-700 mb-4">Gem. score per maand</h2>
+    <div class="space-y-3">
+      ${monthData.map(d=>`
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-slate-400 w-8">${d.m}</span>
+          <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-full bg-amber-400 rounded-full" style="width:${(d.avg/5)*100}%"></div>
+          </div>
+          <span class="text-xs font-semibold text-amber-500 w-8">${d.avg.toFixed(1)}</span>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="fade-in-d3 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <h2 class="text-sm font-semibold text-slate-700 mb-4">Meest genoemde woorden</h2>
+    <div class="flex flex-wrap gap-2">
+      ${[['heerlijk',18],['lekker',14],['vriendelijk',11],['kwaliteit',10],['fantastisch',9],['vers',8],['aanraden',7],['taart',7],['macarons',6],['wachttijd',5],['prijs',5],['croissants',4]].map(([w,n])=>
+        `<span class="chip bg-teal-50 border border-teal-100 text-teal-700 text-xs py-1.5 px-3">${w} <span class="text-teal-400">${n}</span></span>`
+      ).join('')}
+    </div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════════
+   SETTINGS PAGE
+════════════════════════════════════════════ */
+function renderSettings(c){
+  c.innerHTML=`
+  <div class="fade-in bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
+      </div>
+      <div class="flex-1">
+        <h2 class="text-sm font-semibold text-slate-800">Google Business Integratie</h2>
+        <p class="text-xs text-slate-400">Koppel uw account voor live reviews</p>
+      </div>
+      <span class="chip ${APP.isLiveMode?'bg-teal-50 text-teal-600 border border-teal-200':'bg-amber-50 text-amber-600 border border-amber-200'}">${APP.isLiveMode?'✓ Gekoppeld':'Niet gekoppeld'}</span>
+    </div>
+    <div class="px-6 py-5">
+      ${APP.isLiveMode?`
+        <div class="flex items-start gap-3 p-4 rounded-lg bg-teal-50 border border-teal-200 mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <p class="text-sm text-teal-700 font-medium">Account succesvol gekoppeld. Live reviews worden automatisch gesynchroniseerd.</p>
+        </div>
+        <button onclick="disconnectApi()" class="px-4 py-2 text-xs font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition">Koppeling verwijderen</button>
+      `:`
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1.5">Google Business API Key</label>
+            <input id="apiKey" type="text" placeholder="AIza••••••••••••••••••••••••••••••••••••" class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-slate-50 text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition font-mono"/>
+            <p class="text-[11px] text-slate-400 mt-1.5">Vind uw API key in de Google Cloud Console onder Credentials.</p>
+          </div>
+          <div id="apiError" class="hidden px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-600"></div>
+          <button onclick="connectApi()" class="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 active:scale-[.98] transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Koppel Account
+          </button>
+        </div>`}
+    </div>
+  </div>
+
+  <div class="fade-in-d1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-100"><h2 class="text-sm font-semibold text-slate-800">AI Instellingen</h2></div>
+    <div class="px-6 py-5 space-y-5">
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1.5">Standaard schrijftoon</label>
+        <select class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition">
+          <option>Professioneel</option><option>Vriendelijk</option><option>Formeel</option><option>Empathisch</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1.5">Bedrijfsnaam in reacties</label>
+        <input type="text" value="SweetsNesz" class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition"/>
+      </div>
+      <div class="flex items-center justify-between">
+        <div><p class="text-sm font-medium text-slate-700">Auto-beantwoorden 5-ster reviews</p><p class="text-xs text-slate-400">AI reageert automatisch op uitstekende reviews</p></div>
+        <button onclick="this.classList.toggle('bg-teal-600');this.classList.toggle('bg-slate-200');this.querySelector('span').classList.toggle('translate-x-5');this.querySelector('span').classList.toggle('translate-x-0');" class="relative w-11 h-6 rounded-full bg-slate-200 transition-colors duration-200">
+          <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 translate-x-0"></span>
+        </button>
+      </div>
+      <button onclick="showToast('Instellingen opgeslagen!')" class="px-4 py-2 text-xs font-semibold text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition">Opslaan</button>
+    </div>
+  </div>
+
+  <div class="fade-in-d2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-6 py-5 border-b border-slate-100"><h2 class="text-sm font-semibold text-slate-800">Meldingen</h2></div>
+    <div class="px-6 py-5 space-y-4">
+      ${[['Nieuwe review ontvangen',true],['Nieuwe 1- of 2-ster review',true],['Wekelijks rapport per e-mail',false],['AI reactie klaar',false]].map(([l,a])=>`
+        <div class="flex items-center justify-between">
+          <p class="text-sm text-slate-600">${l}</p>
+          <button onclick="this.classList.toggle('bg-teal-600');this.classList.toggle('bg-slate-200');this.querySelector('span').classList.toggle('translate-x-5');this.querySelector('span').classList.toggle('translate-x-0');" class="relative w-11 h-6 rounded-full ${a?'bg-teal-600':'bg-slate-200'} transition-colors duration-200">
+            <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${a?'translate-x-5':'translate-x-0'}"></span>
+          </button>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════════
+   API CONNECT / DISCONNECT
+════════════════════════════════════════════ */
+function connectApi(){
+  const key=(document.getElementById('apiKey')||{value:''}).value.trim();
+  const err=document.getElementById('apiError');
+  if(!key){ if(err){err.textContent='Vul een geldige API key in.';err.classList.remove('hidden');} return; }
+  if(key.length<10){ if(err){err.textContent='API key lijkt ongeldig (te kort).';err.classList.remove('hidden');} return; }
+  if(err) err.classList.add('hidden');
+  const btn=document.querySelector('#mainContent button');
+  if(btn){btn.textContent='Verbinden…';btn.disabled=true;}
+  setTimeout(()=>{ APP.isLiveMode=true; setLiveMode(true); renderSettings(document.getElementById('mainContent')); },1800);
+}
+function disconnectApi(){
+  if(!confirm('Koppeling verwijderen?'))return;
+  APP.isLiveMode=false; setLiveMode(false); renderSettings(document.getElementById('mainContent'));
+}
+function setLiveMode(live){
+  const b=document.getElementById('statusBadge');
+  const d=document.getElementById('statusDot');
+  const t=document.getElementById('statusText');
+  if(live){
+    b.className='flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-200';
+    d.className='w-1.5 h-1.5 rounded-full bg-teal-500';
+    t.className='text-xs font-semibold text-teal-600'; t.textContent='Live Gekoppeld';
+  } else {
+    b.className='flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200';
+    d.className='w-1.5 h-1.5 rounded-full bg-amber-500';
+    t.className='text-xs font-semibold text-amber-600'; t.textContent='Demo Modus';
+  }
+}
+
+/* ════════════════════════════════════════════
+   AI MODAL
+════════════════════════════════════════════ */
+function openAiModal(id){
+  APP.activeReviewId=id;
+  APP.currentTone='professioneel';
+  const review=APP.reviews.find(r=>r.id===id);
+  if(!review) return;
+  document.getElementById('modalReviewerName').textContent=`Reactie voor ${review.name} (${review.rating}★)`;
+  document.getElementById('modalReviewSnippet').textContent=`"${review.text.substring(0,150)}${review.text.length>150?'…':''}"`;
+  document.getElementById('aiLoadingState').classList.remove('hidden');
+  document.getElementById('aiResultState').classList.add('hidden');
+  document.getElementById('aiModalFooter').classList.add('hidden');
+  document.getElementById('aiModal').classList.remove('hidden');
+  // Reset tone buttons
+  document.querySelectorAll('.tone-btn').forEach(b=>{
+    b.classList.remove('border-teal-500','text-teal-600','bg-teal-50');
+    b.classList.add('border-slate-200','text-slate-500');
+    if(b.dataset.tone==='professioneel'){ b.classList.add('border-teal-500','text-teal-600','bg-teal-50'); b.classList.remove('border-slate-200','text-slate-500'); }
+  });
+  setTimeout(()=>{ generateAndShow('professioneel'); }, 1500);
+}
+function generateAndShow(tone){
+  const review=APP.reviews.find(r=>r.id===APP.activeReviewId);
+  if(!review) return;
+  const toneData = AI[tone]||AI['professioneel'];
+  const fn = toneData[review.rating]||toneData[3];
+  const text = fn(review.name);
+  APP.generatedResponse=text;
+  document.getElementById('aiLoadingState').classList.add('hidden');
+  document.getElementById('aiResultState').classList.remove('hidden');
+  document.getElementById('aiModalFooter').classList.remove('hidden');
+  typewrite(text);
+}
+function typewrite(text){
+  const box=document.getElementById('aiResponseBox');
+  box.contentEditable='false';
+  box.classList.add('cursor-blink');
+  box.innerHTML='';
+  let i=0;
+  const iv=setInterval(()=>{
+    i+=4;
+    if(i>=text.length){ i=text.length; clearInterval(iv); box.classList.remove('cursor-blink'); box.contentEditable='true'; }
+    box.innerHTML=text.substring(0,i).replace(/\n/g,'<br/>');
+  },16);
+}
+function setTone(tone){
+  APP.currentTone=tone;
+  document.querySelectorAll('.tone-btn').forEach(b=>{
+    const isActive=b.dataset.tone===tone;
+    b.classList.toggle('border-teal-500',isActive); b.classList.toggle('text-teal-600',isActive); b.classList.toggle('bg-teal-50',isActive);
+    b.classList.toggle('border-slate-200',!isActive); b.classList.toggle('text-slate-500',!isActive);
+  });
+  document.getElementById('aiLoadingState').classList.remove('hidden');
+  document.getElementById('aiResultState').classList.add('hidden');
+  document.getElementById('aiModalFooter').classList.add('hidden');
+  setTimeout(()=>generateAndShow(tone), 800);
+}
+function closeAiModal(){ document.getElementById('aiModal').classList.add('hidden'); }
+function copyResponse(){
+  const box=document.getElementById('aiResponseBox');
+  const text=box.innerText||box.textContent;
+  navigator.clipboard.writeText(text).catch(()=>{});
+  box.classList.add('copy-flash');
+  setTimeout(()=>box.classList.remove('copy-flash'),500);
+  showToast('Reactie gekopieerd!');
+}
+function acceptResponse(){
+  const review=APP.reviews.find(r=>r.id===APP.activeReviewId);
+  if(!review) return;
+  const box=document.getElementById('aiResponseBox');
+  const finalText=(box.innerText||box.textContent||APP.generatedResponse).trim();
+  review.status='Beantwoord';
+  review.response=finalText;
+  review.respondedAt=new Date().toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'});
+  closeAiModal();
+  updateBadgeCount();
+  showToast('Reactie geplaatst!');
+  // Re-render the specific card if visible
+  const card=document.getElementById(`reviewCard-${review.id}`);
+  if(card){
+    const tmp=document.createElement('div');
+    tmp.innerHTML=buildReviewCard(review,0);
+    card.replaceWith(tmp.firstElementChild);
+  } else if(APP.currentPage==='overview'){
+    renderPage('overview');
+  }
+  if(APP.currentPage==='reviews') renderPage('reviews');
+}
+document.getElementById('aiModal').addEventListener('click',function(e){ if(e.target===this) closeAiModal(); });
+document.getElementById('deleteModal').addEventListener('click',function(e){ if(e.target===this) closeDeleteModal(); });
+
+/* ════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════ */
+function showToast(msg, type='success'){
+  const el=document.createElement('div');
+  const isErr=type==='error';
+  el.className=`fixed bottom-6 right-6 z-[100] flex items-center gap-2.5 px-4 py-3 ${isErr?'bg-red-600':'bg-slate-800'} text-white text-sm rounded-xl shadow-lg toast-enter`;
+  el.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 ${isErr?'text-red-200':'text-teal-400'} flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>${msg}`;
+  document.body.appendChild(el);
+  setTimeout(()=>{ el.classList.remove('toast-enter'); el.classList.add('toast-exit'); setTimeout(()=>el.remove(),300); },2800);
+}
+</script>
+</body>
+</html>
